@@ -1,14 +1,5 @@
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&color=32de84&height=85&section=header"/>
 
-<div align="right">
-    <a href="Docs/Readmes/Brazilian.md" target="_blank">
-        <img src="Docs/img/readme/flag_br.png" height="25" width="25">
-    </a>
-    <a href="Docs/Readmes/Russian.md" target="_blank">
-        <img src="Docs/img/readme/flag_ru.png" height="25" width="25">
-    </a>
-</div>
-
 <div align="center">
 
 ![Title](Docs/img/logos/title.png)
