@@ -6,7 +6,7 @@ Baixe o [Termux](https://termux.dev/en/) e o [TermuxDepotDownloader](https://git
 
 Agora baixe e instale o nosso script:
 ```
-curl -LO "https://raw.githubusercontent.com/source-br/Valve-on-android/main/installgames.sh"
+curl -LO "https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/installgames.sh"
 chmod +x installgames.sh
 ./installgames.sh
 ```
