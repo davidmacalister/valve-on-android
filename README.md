@@ -32,7 +32,11 @@ This project aims to make it easier to download Valve games on Android legally.
   * Counter-Strike
   * Team Fortress Classic
 * Support for downloading official Steam language packs.
-* Support for downloading community language packs (our projects and other translations — currently hidden in the script).
+## Documentation:
+* 🚀 **[Getting Started Guide](Docs/getting-started.md)**: Setup, prerequisites, and execution instructions.
+* 🎮 **[Supported Games](Docs/supported-games.md)**: Complete list of supported games and Steam links.
+* 🧩 **[Supported Mods](Docs/supported-mods.md)**: Supported GoldSrc and Source Engine mods.
+* 📥 **[Engine & Client Downloads](Docs/downloads.md)**: Android game engines, client APKs, and launcher downloads.
 
 > [!WARNING]
 > TermuxDepotDownloader is not recommended for use on the Google Play Store version of Termux.  
@@ -58,9 +62,9 @@ curl -LO "https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/
 ```
 
 <div align="center">
-  <img src="Docs/img/screen1.png" width="30%">
-  <img src="Docs/img/screen2.png" width="30%">
-  <img src="Docs/img/screen3.png" width="30%">
+  <img src="Docs/img/screenshots/screen1.png" width="30%">
+  <img src="Docs/img/screenshots/screen2.png" width="30%">
+  <img src="Docs/img/screenshots/screen3.png" width="30%">
 </div>
 
 <img width=100% src="https://capsule-render.vercel.app/api?type=waving&color=32de84&height=85&section=footer"/>
