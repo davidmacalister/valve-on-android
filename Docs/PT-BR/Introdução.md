@@ -6,22 +6,22 @@ Baixe o [Termux](https://termux.dev/en/) e o [TermuxDepotDownloader](https://git
 
 Agora baixe e instale o nosso script:
 ```
-curl -LO "https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/installgames.sh"
-chmod +x installgames.sh
-./installgames.sh
+curl -LO "https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/valve-on-android.sh"
+chmod +x valve-on-android.sh
+./valve-on-android.sh
 ```
 Selecione os jogos que você deseja baixar e logue a sua Steam.
 
-Após o Download concluir, na sua pasta download deve ter uma pasta chamada `depotdownloded` e dentro terá os arquivos dos jogos que você baixou, agora como que você poderá joga-los
+Após o Download concluir, na sua pasta download deve ter uma pasta chamada `depotdownloaded` e dentro terá os arquivos dos jogos que você baixou, agora como que você poderá joga-los
 
 pra isso existem 2 projetos, o Xash3D FWGS, e o Source Engine 4 Android.
 
-O Xash3D FGWS é focado na Goldsrc, enqunato o Source Engine 4 Android é focado na source.
+O Xash3D FWGS é focado na Goldsrc, enqunato o Source Engine 4 Android é focado na source.
 
 ### Goldsrc:
 Então para jogar o Half-Life e qualquer outro jogo Goldsrc:
 
-Baixe o Xash3D FGWS e se for jogar o CS e Team Fortress classic baixe seus respectivos APKs
+Baixe o Xash3D FWGS e se for jogar o CS e Team Fortress classic baixe seus respectivos APKs
 
 Abra o Xash3D FWGS, clique no icone `+` e seleciona a pastas dos jogos  lá no `depotdownloded/goldsrc`
 
