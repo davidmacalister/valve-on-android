@@ -65,6 +65,12 @@ run_official_language_download() {
             -depot "$depot_id"
             -dir "$target_dir"
         )
+
+        if [[ "${DRY_RUN:-0}" == "1" ]]; then
+            echo -e "${YELLOW}[DRY RUN] Simulated command:${RESET} ${lang_cmd[*]}"
+            return 0
+        fi
+
         "${lang_cmd[@]}" || {
             echo -e "${RED}${LANG_COMMANDS_ABOVE}${RESET}"
             return 1
@@ -87,6 +93,13 @@ run_community_language_download() {
     local display_label="${COMMUNITY_LANG_DISPLAY[$selected_comm_lang]:-$selected_comm_lang}"
 
     if [[ -n "$url" ]]; then
+        if [[ "${DRY_RUN:-0}" == "1" ]]; then
+            echo -e "${YELLOW}[DRY RUN] Simulated Community Pack Download:${RESET}"
+            echo -e "  Label: ${display_label}"
+            echo -e "  URL: ${url}"
+            echo -e "  Target Path: ${outdir}/${outfile}"
+            return 0
+        fi
         download_and_extract_community_pack "$url" "$outdir" "$outfile" "$display_label"
     else
         echo -e "${YELLOW}${LANG_NO_COMMUNITY_PACK} ${game_name} (${display_label})${RESET}"
@@ -120,10 +133,15 @@ execute_downloads() {
             "${arg_tokens[@]}"
         )
 
-        "${full_cmd[@]}" || {
-            echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
-            return 1
-        }
+        if [[ "${DRY_RUN:-0}" == "1" ]]; then
+            echo -e "${YELLOW}[DRY RUN] Simulated Base Game Command:${RESET}"
+            echo -e "  ${full_cmd[*]}"
+        else
+            "${full_cmd[@]}" || {
+                echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
+                return 1
+            }
+        fi
 
         # Handle official language pack downloads if selected
         if [[ "$TRANSLATION_MODE" == "official" && -n "$SELECTED_OFFICIAL_LANG" ]]; then

@@ -3,6 +3,12 @@
 # ==========================================
 
 ensure_depotdownloader_installed() {
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        echo -e "${YELLOW}[DRY RUN MODE ENABLED] DepotDownloader check bypassed.${RESET}"
+        sleep 1
+        return 0
+    fi
+
     if command -v depotdownloader >/dev/null 2>&1; then
         return 0
     fi

@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/env bash
+#!/usr/bin/env bash
 
 # ==========================================
 # Safety & Environment Settings
@@ -10,6 +10,17 @@ set -u
 # Resolve current script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SET_DIR="/storage/emulated/0/"
+
+# Dry-run mode flag (set via DRY_RUN=1 env var or --dry-run / -d argument)
+export DRY_RUN="${DRY_RUN:-0}"
+
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run|-d)
+            export DRY_RUN="1"
+            ;;
+    esac
+done
 
 # ==========================================
 # Load Modular Subsystems

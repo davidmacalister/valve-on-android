@@ -37,17 +37,17 @@ read_masked_password() {
     local secret=""
     local char=""
 
-    echo -n "$prompt_msg "
+    echo -n "$prompt_msg " >&2
     while IFS= read -r -s -n1 char; do
-        [[ -z "$char" ]] && echo && break
+        [[ -z "$char" ]] && echo >&2 && break
         if [[ "$char" == $'\x7f' ]]; then
             if [[ ${#secret} -gt 0 ]]; then
                 secret="${secret%?}"
-                echo -ne "\b \b"
+                echo -ne "\b \b" >&2
             fi
         else
             secret+="$char"
-            echo -n "*"
+            echo -n "*" >&2
         fi
     done
     echo "$secret"
