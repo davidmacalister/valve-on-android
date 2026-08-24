@@ -33,9 +33,22 @@ run_interactive_menu() {
         checked+=(0)
     done
 
-    # Default first item checked for radio/checkbox if provided in initial state
-    if [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
-        checked[0]=1
+    if [[ "$menu_type" == "radio" ]]; then
+        local init_idx="${MENU_INITIAL_CHECKED_INDEX:-0}"
+        if [[ "$init_idx" -ge 0 && "$init_idx" -lt "$item_count" ]]; then
+            checked[$init_idx]=1
+        else
+            checked[0]=1
+        fi
+    elif [[ "$menu_type" == "checkbox" ]]; then
+        # Checkbox menus default to ALL UNCHECKED (0) unless specified
+        if [[ -n "${MENU_INITIAL_CHECKED_INDICES:-}" ]]; then
+            for c_idx in "${MENU_INITIAL_CHECKED_INDICES[@]}"; do
+                if [[ "$c_idx" -ge 0 && "$c_idx" -lt "$item_count" ]]; then
+                    checked[$c_idx]=1
+                fi
+            done
+        fi
     fi
 
     # Clear screen ONCE at entry
@@ -249,6 +262,8 @@ show_main_menu() {
 # Game Installation Selection Menu
 show_installation_game_selection_menu() {
     SELECTED_GAME_ARGS=()
+    MENU_INITIAL_CHECKED_INDEX=-1
+    MENU_INITIAL_CHECKED_INDICES=()
     local -a games=(
         "Half-Life"
         "Half-Life: Blue Shift"
@@ -273,7 +288,7 @@ show_installation_game_selection_menu() {
         "checkbox" \
         "${games[@]}" \
         "---FOOTER---" \
-        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
         return 1
     fi
 
@@ -327,6 +342,9 @@ show_installation_game_selection_menu() {
 # GoldSrc Version Selection Menu
 show_goldsrc_version_menu() {
     GOLDSRC_SELECTED_VERSION="25th"
+    MENU_INITIAL_CHECKED_INDEX=0
+    [[ "${GOLDSRC_SELECTED_VERSION_SAVED:-}" == "pre25th" ]] && MENU_INITIAL_CHECKED_INDEX=1
+
     local -a opts=(
         "${LANG_GOLDSRCVERSION_OPTION_25TH:-Versão mais recente}"
         "${LANG_GOLDSRCVERSION_OPTION_PRE25TH:-Versão anterior ao 25 Aniversário}"
@@ -341,7 +359,7 @@ show_goldsrc_version_menu() {
         "radio" \
         "${opts[@]}" \
         "---FOOTER---" \
-        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
         return 1
     fi
 
@@ -350,6 +368,7 @@ show_goldsrc_version_menu() {
     else
         GOLDSRC_SELECTED_VERSION="25th"
     fi
+    GOLDSRC_SELECTED_VERSION_SAVED="$GOLDSRC_SELECTED_VERSION"
     return 0
 }
 
@@ -409,7 +428,7 @@ show_steam_login_menu() {
         done
 
         echo -e "==========================\033[K"
-        echo -e "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}\033[K"
+        echo -e "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}\033[K"
         echo -ne "\033[J"
 
         local key
@@ -470,7 +489,7 @@ show_options_menu() {
             "${LANG_DISPLAY_SETTINGS:-Exibir}" \
             "${LANG_BACK:-Voltar}" \
             "---FOOTER---" \
-            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"
         local opt_choice=$?
 
         case "$opt_choice" in
@@ -510,7 +529,7 @@ show_steam_accounts_menu() {
             "${LANG_REMOVE_SAVED_ACCOUNTS:-Remover contas salvas}" \
             "${LANG_BACK:-Voltar}" \
             "---FOOTER---" \
-            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"
         local choice=$?
 
         case "$choice" in
@@ -522,7 +541,8 @@ show_steam_accounts_menu() {
                     done
                     account_opts+=("${LANG_CONFIRM:-Confirmar}" "${LANG_BACK:-Voltar}")
 
-                    if run_interactive_menu "${LANG_OPTIONS_MENU_TITLE:-Opções}" "${LANG_CHANGE_USED_ACCOUNT:-Alterar conta usada}" "" "radio" "${account_opts[@]}" "---FOOTER---" "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+                    MENU_INITIAL_CHECKED_INDEX=${SAVED_ACTIVE_INDEX:-0}
+                    if run_interactive_menu "${LANG_OPTIONS_MENU_TITLE:-Opções}" "${LANG_CHANGE_USED_ACCOUNT:-Alterar conta usada}" "" "radio" "${account_opts[@]}" "---FOOTER---" "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
                         local selected_acc_idx="${MENU_CHECKED_INDICES[0]:-0}"
                         set_active_account "$selected_acc_idx"
                     fi
@@ -562,7 +582,7 @@ show_languages_menu() {
             "${LANG_GAMES_LANG:-Idioma dos jogos}" \
             "${LANG_BACK:-Voltar}" \
             "---FOOTER---" \
-            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"
         local lang_choice=$?
 
         case "$lang_choice" in
@@ -575,6 +595,14 @@ show_languages_menu() {
 
 # Interface Language Menu
 show_interface_language_menu() {
+    MENU_INITIAL_CHECKED_INDEX=0
+    case "${CURRENT_LANG_SCRIPT:-}" in
+        "russian.sh") MENU_INITIAL_CHECKED_INDEX=1 ;;
+        "spanish.sh") MENU_INITIAL_CHECKED_INDEX=2 ;;
+        "brazilian.sh") MENU_INITIAL_CHECKED_INDEX=3 ;;
+        *) MENU_INITIAL_CHECKED_INDEX=0 ;;
+    esac
+
     local -a lang_opts=(
         "English"
         "Русский"
@@ -591,7 +619,7 @@ show_interface_language_menu() {
         "radio" \
         "${lang_opts[@]}" \
         "---FOOTER---" \
-        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
         case "${MENU_CHECKED_INDICES[0]:-0}" in
             0) load_language_script "english.sh" ;;
             1) load_language_script "russian.sh" ;;
@@ -603,6 +631,17 @@ show_interface_language_menu() {
 
 # Games Language Menu
 show_games_language_menu() {
+    MENU_INITIAL_CHECKED_INDEX=0
+    case "${SELECTED_OFFICIAL_LANG:-english}" in
+        "english") MENU_INITIAL_CHECKED_INDEX=0 ;;
+        "russian") MENU_INITIAL_CHECKED_INDEX=1 ;;
+        "spanish") MENU_INITIAL_CHECKED_INDEX=2 ;;
+        "french") MENU_INITIAL_CHECKED_INDEX=3 ;;
+        "german") MENU_INITIAL_CHECKED_INDEX=4 ;;
+        "italian") MENU_INITIAL_CHECKED_INDEX=5 ;;
+        "portuguese") MENU_INITIAL_CHECKED_INDEX=6 ;;
+    esac
+
     local -a game_lang_opts=(
         "English"
         "Русский"
@@ -704,6 +743,9 @@ show_uninstall_game_selection_menu() {
         return 1
     fi
 
+    MENU_INITIAL_CHECKED_INDEX=-1
+    MENU_INITIAL_CHECKED_INDICES=()
+
     local -a uninstall_opts=()
     for name in "${INSTALLED_GAMES_NAMES[@]}"; do
         uninstall_opts+=("$name")
@@ -717,7 +759,7 @@ show_uninstall_game_selection_menu() {
         "checkbox" \
         "${uninstall_opts[@]}" \
         "---FOOTER---" \
-        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
 
         for idx in "${MENU_CHECKED_INDICES[@]}"; do
             local game_args="${INSTALLED_GAMES_ARGS[$idx]:-}"

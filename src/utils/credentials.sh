@@ -91,25 +91,24 @@ save_credentials() {
 
     local -a new_users=()
     local -a new_passes=()
-    local found=0
+    local target_active_idx=-1
 
     for (( i=0; i<${#SAVED_USERNAMES[@]}; i++ )); do
         if [[ "${SAVED_USERNAMES[$i]}" == "$username" ]]; then
             new_users+=("$username")
             new_passes+=("$password")
-            found=1
+            target_active_idx=$i
         else
             new_users+=("${SAVED_USERNAMES[$i]}")
             new_passes+=("${SAVED_PASSWORDS[$i]}")
         fi
     done
 
-    if [[ $found -eq 0 ]]; then
+    if [[ $target_active_idx -eq -1 ]]; then
         new_users+=("$username")
         new_passes+=("$password")
+        target_active_idx=$(( ${#new_users[@]} - 1 ))
     fi
-
-    local target_active_idx=$(( ${#new_users[@]} - 1 ))
 
     {
         for (( i=0; i<${#new_users[@]}; i++ )); do
@@ -122,8 +121,9 @@ save_credentials() {
     } > "$cred_file" 2>/dev/null
 
     chmod 600 "$cred_file" 2>/dev/null || true
-    SAVED_USERNAME="$username"
-    SAVED_PASSWORD="$password"
+
+    # Reload credentials to update active index and user variables in memory
+    load_saved_credentials 2>/dev/null || true
 }
 
 set_active_account() {
