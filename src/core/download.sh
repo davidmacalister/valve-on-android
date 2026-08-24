@@ -32,6 +32,16 @@ mask_password_in_cmd() {
     echo "${cmd_copy[*]}"
 }
 
+get_dir_from_args() {
+    local -a tokens=( $1 )
+    for (( i=0; i<${#tokens[@]}; i++ )); do
+        if [[ "${tokens[$i]}" == "-dir" ]]; then
+            echo "${tokens[$((i+1))]}"
+            return 0
+        fi
+    done
+}
+
 run_official_language_download() {
     local appid="$1"
     local depot="$2"
@@ -93,6 +103,7 @@ run_community_language_download() {
     local depot="$2"
     local game_name="$3"
     local selected_comm_lang="$4"
+    local target_dir_name="$5"
 
     local key_dep="${appid}:${depot},${selected_comm_lang}"
     local key_app="${appid},${selected_comm_lang}"
@@ -100,6 +111,11 @@ run_community_language_download() {
     local url="${COMMUNITY_URLS[$key_dep]:-${COMMUNITY_URLS[$key_app]:-}}"
     local outfile="${COMMUNITY_OUTFILES[$key_dep]:-${COMMUNITY_OUTFILES[$key_app]:-${appid}_${selected_comm_lang}.zip}}"
     local outdir="${COMMUNITY_OUTDIRS[$key_dep]:-${COMMUNITY_OUTDIRS[$key_app]:-${PWD}/downloads}}"
+
+    if [[ -n "$target_dir_name" && "$outdir" == *"/xash"* && "$target_dir_name" == "xash_old" ]]; then
+        outdir="${outdir/xash/xash_old}"
+    fi
+
     local display_label="${COMMUNITY_LANG_DISPLAY[$selected_comm_lang]:-$selected_comm_lang}"
 
     if [[ -n "$url" ]]; then
@@ -124,10 +140,12 @@ execute_downloads() {
         local appid
         local depot
         local game_name
+        local target_dir_name
 
         appid="$(get_app_id_from_args "$game_args")"
         depot="$(get_depot_id_from_args "$game_args")"
         game_name="$(get_game_name "$appid" "$depot")"
+        target_dir_name="$(get_dir_from_args "$game_args")"
 
         clear
         echo -e "${BOLD}${GREEN}${LANG_DOWNLOADING}${RESET} ${game_name}"
@@ -160,7 +178,7 @@ execute_downloads() {
 
         # Handle community language pack downloads if selected
         if [[ "$TRANSLATION_MODE" == "community" && -n "$SELECTED_COMMUNITY_LANG" ]]; then
-            run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG"
+            run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG" "$target_dir_name"
         fi
     done
 }

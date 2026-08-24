@@ -44,6 +44,27 @@ find_zip_extractor() {
     return 1
 }
 
+copy_and_merge() {
+    local src="$1"
+    local dest="$2"
+
+    mkdir -p "$dest"
+    shopt -s dotglob nullglob
+    for entry in "$src"/*; do
+        local bname
+        bname="$(basename "$entry")"
+        local tpath="$dest/$bname"
+
+        if [[ -d "$entry" ]]; then
+            mkdir -p "$tpath"
+            copy_and_merge "$entry" "$tpath"
+        else
+            cp -f "$entry" "$tpath"
+        fi
+    done
+    shopt -u dotglob nullglob
+}
+
 extract_zip() {
     local archive="$1"
     local dest="$2"
@@ -107,14 +128,9 @@ extract_zip() {
     local entries=( "$tmpdir"/* )
     if (( ${#entries[@]} == 1 )) && [[ -d "${entries[0]}" ]]; then
         local topdir="${entries[0]}"
-        for item in "$topdir"/*; do
-            mv -f "$item" "$dest"/ || echo -e "${YELLOW}Warning moving $item${RESET}"
-        done
-        rmdir --ignore-fail-on-non-empty "$topdir" 2>/dev/null || rm -rf "$topdir" 2>/dev/null || true
+        copy_and_merge "$topdir" "$dest"
     else
-        for item in "$tmpdir"/*; do
-            mv -f "$item" "$dest"/ || echo -e "${YELLOW}Warning moving $item${RESET}"
-        done
+        copy_and_merge "$tmpdir" "$dest"
     fi
     shopt -u dotglob nullglob
 
