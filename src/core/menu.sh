@@ -96,13 +96,13 @@ run_interactive_menu() {
                     local symbol="( )"
                     [[ ${checked[$i]} -eq 1 ]] && symbol="(●)"
 
-                    local color
-                    color="$(get_game_color "$label")"
+                    local colored_label
+                    colored_label="$(format_game_name_colored "$label")"
 
                     if [[ $i -eq $active_idx ]]; then
-                        echo -e "${prefix}${BOLD}${symbol} ${color}${label}${RESET}\033[K"
+                        echo -e "${prefix}${BOLD}${symbol} ${colored_label}${RESET}\033[K"
                     else
-                        echo -e "${prefix}${symbol} ${color}${label}${RESET}\033[K"
+                        echo -e "${prefix}${symbol} ${colored_label}${RESET}\033[K"
                     fi
                 fi
             else
@@ -216,7 +216,7 @@ show_initial_language_menu() {
             "Português (Brasil)" \
             "Exit" \
             "---FOOTER---" \
-            "↑/↓ navigate   Enter select"
+            "↑/↓ navigate   → select"
         local choice=$?
 
         case "$choice" in

@@ -214,7 +214,8 @@ execute_downloads() {
 
 
     echo
-    read -p "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte ENTER para voltar ao menu principal}" _
+    echo -n "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte → para voltar ao menu principal} "
+    read_key >/dev/null
 }
 
 execute_verification_downloads() {
@@ -290,6 +291,7 @@ execute_verification_downloads() {
     done
 
     echo
-    read -p "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte ENTER para voltar ao menu principal}" _
+    echo -n "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte → para voltar ao menu principal} "
+    read_key >/dev/null
 }
 

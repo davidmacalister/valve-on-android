@@ -54,18 +54,18 @@ read_masked_password() {
     echo "$secret"
 }
 
-# Returns game specific ANSI color code
-get_game_color() {
+# Returns game name formatted with exact ANSI color palette
+format_game_name_colored() {
     local name="$1"
     case "$name" in
-        *"Blue Shift"*)     echo "${BLUE}" ;;
-        *"Opposing Force"*) echo "${GREEN}" ;;
-        *"Half-Life"*|"HL"*)echo "${ORANGE}" ;;
-        *"Counter-Strike"*) echo "${CYAN}" ;;
-        *"Day of Defeat"*)  echo "${RED}" ;;
-        *"Team Fortress"*)  echo "${YELLOW}" ;;
-        *"Portal"*)         echo "${CYAN}" ;;
-        *)                  echo "${CYAN}" ;;
+        *"Day of Defeat"*)  echo -e "${GREEN}Day${RESET} of ${RED}Defeat:${RESET} Source" ;;
+        *"Counter-Strike"*) echo -e "${RESET}${name}" ;;
+        *"Blue Shift"*)     echo -e "${BLUE}${name}${RESET}" ;;
+        *"Opposing Force"*) echo -e "${GREEN}${name}${RESET}" ;;
+        *"Half-Life"*)      echo -e "${ORANGE}${name}${RESET}" ;;
+        *"Team Fortress"*)  echo -e "${YELLOW}${name}${RESET}" ;;
+        *"Portal"*)         echo -e "${CYAN}${name}${RESET}" ;;
+        *)                  echo -e "${RESET}${name}" ;;
     esac
 }
 
