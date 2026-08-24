@@ -9,6 +9,8 @@ load_language_script() {
     local local_file="${SCRIPT_DIR}/locales/${lang_filename}"
     local remote_url="https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/locales/${lang_filename}"
 
+    export CURRENT_INTERFACE_LANG_SCRIPT="$lang_filename"
+
     if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_file" ]]; then
         source "$local_file"
         setup_language_display_names

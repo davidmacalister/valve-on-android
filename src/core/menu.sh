@@ -252,9 +252,12 @@ show_initial_language_menu() {
             1) load_language_script "russian.sh" && break ;;
             2) load_language_script "spanish.sh" && break ;;
             3) load_language_script "brazilian.sh" && break ;;
-            4) echo "Exiting..."; exit 0 ;;
+            4) clear; echo -e "${RED:-}${LANG_EXITING:-Saindo...}${RESET:-}"; exit 0 ;;
         esac
     done
+
+    # Second screen on initial startup: Games Language Selection
+    show_games_language_menu
 }
 
 # Main Menu
@@ -611,7 +614,7 @@ show_languages_menu() {
 # Interface Language Menu
 show_interface_language_menu() {
     MENU_INITIAL_CHECKED_INDEX=0
-    case "${CURRENT_LANG_SCRIPT:-}" in
+    case "${CURRENT_INTERFACE_LANG_SCRIPT:-}" in
         "russian.sh") MENU_INITIAL_CHECKED_INDEX=1 ;;
         "spanish.sh") MENU_INITIAL_CHECKED_INDEX=2 ;;
         "brazilian.sh") MENU_INITIAL_CHECKED_INDEX=3 ;;
