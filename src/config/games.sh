@@ -3,41 +3,41 @@
 # ==========================================
 
 # Official depots by game and language
-declare -A HL2_LANG_DEPOTS=(
-    [french]=227 [german]=228 [russian]=225 [spanish]=226
-    [korean]=229 [tchinese]=230 [schinese]=231 [italian]=232
+declare -g -A HL2_LANG_DEPOTS=(
+    ["french"]=227 ["german"]=228 ["russian"]=225 ["spanish"]=226
+    ["korean"]=229 ["tchinese"]=230 ["schinese"]=231 ["italian"]=232
 )
-declare -A HL2_EP1_LANG_DEPOTS=(
-    [french]=381 [german]=382 [russian]=383 [spanish]=384
-    [korean]=385 [tchinese]=386 [schinese]=387 [italian]=388
+declare -g -A HL2_EP1_LANG_DEPOTS=(
+    ["french"]=381 ["german"]=382 ["russian"]=383 ["spanish"]=384
+    ["korean"]=385 ["tchinese"]=386 ["schinese"]=387 ["italian"]=388
 )
-declare -A HL2_EP2_LANG_DEPOTS=(
-    [french]=421 [german]=422 [russian]=423 [spanish]=424
+declare -g -A HL2_EP2_LANG_DEPOTS=(
+    ["french"]=421 ["german"]=422 ["russian"]=423 ["spanish"]=424
 )
-declare -A CSS_LANG_DEPOTS=(
-    [french]=243 [italian]=244 [german]=245 [spanish]=246
-    [schinese]=247 [korean]=249 [tchinese]=250 [japanese]=251
-    [russian]=252 [thai]=253
+declare -g -A CSS_LANG_DEPOTS=(
+    ["french"]=243 ["italian"]=244 ["german"]=245 ["spanish"]=246
+    ["schinese"]=247 ["korean"]=249 ["tchinese"]=250 ["japanese"]=251
+    ["russian"]=252 ["thai"]=253
 )
-declare -A PORTAL_LANG_DEPOTS=(
-    [spanish]=406 [russian]=405 [french]=407 [german]=408
+declare -g -A PORTAL_LANG_DEPOTS=(
+    ["spanish"]=406 ["russian"]=405 ["french"]=407 ["german"]=408
 )
-declare -A HL_LANG_DEPOTS=(
-    [french]=72 [italian]=73 [german]=74 [spanish]=75 
-    [schinese]=77 [korean]=78 [tchinese]=79 [russian]=141
+declare -g -A HL_LANG_DEPOTS=(
+    ["french"]=72 ["italian"]=73 ["german"]=74 ["spanish"]=75 
+    ["schinese"]=77 ["korean"]=78 ["tchinese"]=79 ["russian"]=141
 )
-declare -A HLBS_LANG_DEPOTS=(
-    [french]=131 [german]=132 
+declare -g -A HLBS_LANG_DEPOTS=(
+    ["french"]=131 ["german"]=132 
 )
-declare -A HLOF_LANG_DEPOTS=(
-    [german]=52 [french]=53 [korean]=56 
+declare -g -A HLOF_LANG_DEPOTS=(
+    ["german"]=52 ["french"]=53 ["korean"]=56 
 )
-declare -A CS_LANG_DEPOTS=(
-    [french]=12 [italian]=13 [german]=14 [spanish]=15
-    [schinese]=17 [korean]=18 [tchinese]=19 [russian]=142
+declare -g -A CS_LANG_DEPOTS=(
+    ["french"]=12 ["italian"]=13 ["german"]=14 ["spanish"]=15
+    ["schinese"]=17 ["korean"]=18 ["tchinese"]=19 ["russian"]=142
 )
-declare -A TFC_LANG_DEPOTS=(
-    [french]=22 [italian]=23 [german]=24 [spanish]=25
+declare -g -A TFC_LANG_DEPOTS=(
+    ["french"]=22 ["italian"]=23 ["german"]=24 ["spanish"]=25
 )
 
 # Function to get human-readable game name from AppID and Depot ID

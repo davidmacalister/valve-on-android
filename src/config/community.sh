@@ -2,10 +2,10 @@
 # Community Translations Configuration
 # ==========================================
 
-declare -A COMMUNITY_LANG_DISPLAY
-declare -A COMMUNITY_URLS
-declare -A COMMUNITY_OUTFILES
-declare -A COMMUNITY_OUTDIRS
+declare -g -A COMMUNITY_LANG_DISPLAY
+declare -g -A COMMUNITY_URLS
+declare -g -A COMMUNITY_OUTFILES
+declare -g -A COMMUNITY_OUTDIRS
 
 setup_community_translations() {
     # Language display definitions using translation tokens

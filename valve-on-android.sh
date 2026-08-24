@@ -23,16 +23,37 @@ for arg in "$@"; do
 done
 
 # ==========================================
-# Load Modular Subsystems
+# Load Modular Subsystems (local or remote)
 # ==========================================
-source "${SCRIPT_DIR}/src/utils/terminal.sh"
-source "${SCRIPT_DIR}/src/utils/i18n.sh"
-source "${SCRIPT_DIR}/src/utils/extract.sh"
-source "${SCRIPT_DIR}/src/config/games.sh"
-source "${SCRIPT_DIR}/src/config/community.sh"
-source "${SCRIPT_DIR}/src/core/depot.sh"
-source "${SCRIPT_DIR}/src/core/download.sh"
-source "${SCRIPT_DIR}/src/core/menu.sh"
+load_module() {
+    local module_rel_path="$1"
+    local local_path="${SCRIPT_DIR}/${module_rel_path}"
+    local remote_url="https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/${module_rel_path}"
+
+    if [[ -s "$local_path" ]]; then
+        source "$local_path"
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$local_path")"
+    echo "Downloading module ${module_rel_path}..."
+    if curl -sSL "$remote_url" -o "$local_path" && [[ -s "$local_path" ]]; then
+        source "$local_path"
+        return 0
+    else
+        echo "Error: Failed to download required module ${module_rel_path}" >&2
+        exit 1
+    fi
+}
+
+load_module "src/utils/terminal.sh"
+load_module "src/utils/i18n.sh"
+load_module "src/utils/extract.sh"
+load_module "src/config/games.sh"
+load_module "src/config/community.sh"
+load_module "src/core/depot.sh"
+load_module "src/core/download.sh"
+load_module "src/core/menu.sh"
 
 # ==========================================
 # Initialize Application
