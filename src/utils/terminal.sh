@@ -11,6 +11,7 @@ export BLUE="\033[34m"
 export CYAN="\033[96m"
 export GREEN="\033[32m"
 export RED="\033[31m"
+export PURPLE="\033[35m"
 export ITALIC="\033[3m"
 
 # Track temporary files for automatic cleanup
@@ -40,7 +41,7 @@ read_masked_password() {
     echo -n "$prompt_msg " >&2
     while IFS= read -r -s -n1 char; do
         [[ -z "$char" ]] && echo >&2 && break
-        if [[ "$char" == $'\x7f' ]]; then
+        if [[ "$char" == $'\x7f' || "$char" == $'\x08' ]]; then
             if [[ ${#secret} -gt 0 ]]; then
                 secret="${secret%?}"
                 echo -ne "\b \b" >&2
@@ -52,3 +53,93 @@ read_masked_password() {
     done
     echo "$secret"
 }
+
+# Returns game specific ANSI color code
+get_game_color() {
+    local name="$1"
+    case "$name" in
+        *"Blue Shift"*)     echo "${BLUE}" ;;
+        *"Opposing Force"*) echo "${GREEN}" ;;
+        *"Half-Life"*|"HL"*)echo "${ORANGE}" ;;
+        *"Counter-Strike"*) echo "${CYAN}" ;;
+        *"Day of Defeat"*)  echo "${RED}" ;;
+        *"Team Fortress"*)  echo "${YELLOW}" ;;
+        *"Portal"*)         echo "${CYAN}" ;;
+        *)                  echo "${CYAN}" ;;
+    esac
+}
+
+# Helper to read arrow keys or navigation keys
+read_key() {
+    local key=""
+    IFS= read -rsn1 key 2>/dev/null
+    if [[ "$key" == $'\x1b' ]]; then
+        local rest=""
+        read -rsn2 -t 0.1 rest 2>/dev/null
+        key="${key}${rest}"
+    fi
+    case "$key" in
+        $'\x1b[A'|'w'|'W') echo "UP" ;;
+        $'\x1b[B'|'s'|'S') echo "DOWN" ;;
+        ' ')               echo "SPACE" ;;
+        ''|$'\x0a'|$'\x0d') echo "ENTER" ;;
+        'b'|'B')           echo "BACK" ;;
+        *)                 echo "$key" ;;
+    esac
+}
+
+# Animated Braille Spinner Executor
+run_step_with_spinner() {
+    local step_label="$1"
+    local success_label="$2"
+    shift 2
+
+    local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local frame_idx=0
+
+    # Hide cursor
+    echo -ne "\033[?25l"
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        for (( i=0; i<4; i++ )); do
+            echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
+            frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
+            sleep 0.15
+        done
+        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}\n"
+        echo -ne "\033[?25h"
+        return 0
+    fi
+
+    local log_file
+    log_file="$(mktemp --tmpdir step_out.XXXX 2>/dev/null || mktemp 2>/dev/null || echo "/tmp/step_out.log")"
+    register_temp_file "$log_file"
+
+    "$@" > "$log_file" 2>&1 &
+    local cmd_pid=$!
+
+    while kill -0 "$cmd_pid" 2>/dev/null; do
+        echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
+        frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
+        sleep 0.1
+    done
+
+    wait "$cmd_pid"
+    local status=$?
+
+    if [[ $status -eq 0 ]]; then
+        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}\n"
+    else
+        echo -ne "\r\033[K${RED}✗ Ocorreu um erro.${RESET}\n"
+        if [[ -s "$log_file" ]]; then
+            tail -n 4 "$log_file" | while read -r line; do
+                echo -e "  ${RED}${line}${RESET}"
+            done
+        fi
+    fi
+
+    # Restore cursor
+    echo -ne "\033[?25h"
+    return $status
+}
+

@@ -1,45 +1,642 @@
 # ==========================================
-# Terminal UI Menus
+# Terminal UI Menus (Interactive Arrow Navigation)
 # ==========================================
 
-show_initial_language_menu() {
-    local choice
+# Generic interactive list selector helper
+# Types: "simple" (returns selected index), "radio" (single choice), "checkbox" (multi choice)
+run_interactive_menu() {
+    local title="$1"
+    local subtitle="$2"
+    local note="$3"
+    local menu_type="$4" # "simple", "radio", "checkbox"
+    shift 4
+
+    local -a raw_items=()
+    while [[ $# -gt 0 ]]; do
+        if [[ "$1" == "---FOOTER---" ]]; then
+            shift
+            break
+        fi
+        raw_items+=("$1")
+        shift
+    done
+
+    local footer_text="${1:-${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}}"
+
+    local active_idx=0
+    local item_count=${#raw_items[@]}
+
+    # For radio or checkbox mode, items array contains labels.
+    # We maintain an array of checked states (0 or 1).
+    local -a checked=()
+    for (( i=0; i<item_count; i++ )); do
+        checked+=(0)
+    done
+
+    # Default first item checked for radio/checkbox if provided in initial state
+    if [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
+        checked[0]=1
+    fi
+
     while true; do
         clear
         echo
-        echo -e "${BOLD}Select language:${RESET}"
+        echo -e "${BOLD}${title}${RESET}"
         echo
-        echo "1) English"
-        echo "2) Português (Brasil)"
-        echo "3) Русский (Russian)"
-        echo "4) Spanish (Español)"
-        echo "============================"
-        read -p "Choice (1-4): " choice
 
-        case "$choice" in
-            1) load_language_script "english.sh" && break ;;
-            2) load_language_script "brazilian.sh" && break ;;
-            3) load_language_script "russian.sh" && break ;;
-            4) load_language_script "spanish.sh" && break ;;
-            b|B) echo "Returning..."; exit 0 ;;
-            *) echo -e "\nInvalid option. Try again..."; sleep 2 ;;
+        if [[ -n "$subtitle" ]]; then
+            echo -e "${subtitle}"
+            echo
+        fi
+
+        if [[ -n "$note" ]]; then
+            echo -e "${ITALIC}${YELLOW}${note}${RESET}"
+            echo
+        fi
+
+        for (( i=0; i<item_count; i++ )); do
+            local prefix="  "
+            [[ $i -eq $active_idx ]] && prefix="❯ "
+
+            local label="${raw_items[$i]}"
+
+            if [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
+                if [[ "$label" == "${LANG_CONFIRM:-Confirmar}" || "$label" == "${LANG_BACK:-Voltar}" || "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
+                    if [[ "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
+                        if [[ $i -eq $active_idx ]]; then
+                            echo -e "${prefix}${RED}${BOLD}${label}${RESET}"
+                        else
+                            echo -e "${prefix}${RED}${label}${RESET}"
+                        fi
+                    else
+                        if [[ $i -eq $active_idx ]]; then
+                            echo -e "${prefix}${BOLD}${label}${RESET}"
+                        else
+                            echo -e "${prefix}${label}${RESET}"
+                        fi
+                    fi
+                else
+                    local symbol="( )"
+                    [[ ${checked[$i]} -eq 1 ]] && symbol="(●)"
+
+                    local color
+                    color="$(get_game_color "$label")"
+
+                    if [[ $i -eq $active_idx ]]; then
+                        echo -e "${prefix}${BOLD}${symbol} ${color}${label}${RESET}"
+                    else
+                        echo -e "${prefix}${symbol} ${color}${label}${RESET}"
+                    fi
+                fi
+            else
+                # Simple menu
+                if [[ "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
+                    if [[ $i -eq $active_idx ]]; then
+                        echo -e "${prefix}${RED}${BOLD}${label}${RESET}"
+                    else
+                        echo -e "${prefix}${RED}${label}${RESET}"
+                    fi
+                elif [[ "$label" == "${LANG_BACK:-Voltar}" ]]; then
+                    if [[ $i -eq $active_idx ]]; then
+                        echo -e "${prefix}${BOLD}${label}${RESET}"
+                    else
+                        echo -e "${prefix}${label}${RESET}"
+                    fi
+                else
+                    if [[ $i -eq $active_idx ]]; then
+                        echo -e "${prefix}${BOLD}${label}${RESET}"
+                    else
+                        echo -e "${prefix}${label}${RESET}"
+                    fi
+                fi
+            fi
+        done
+
+        echo "=========================="
+        echo -e "${footer_text}"
+
+        local key
+        key="$(read_key)"
+
+        case "$key" in
+            UP)
+                active_idx=$(( (active_idx - 1 + item_count) % item_count ))
+                ;;
+            DOWN)
+                active_idx=$(( (active_idx + 1) % item_count ))
+                ;;
+            SPACE)
+                if [[ "$menu_type" == "radio" ]]; then
+                    # Uncheck all, check current if valid item
+                    local label="${raw_items[$active_idx]}"
+                    if [[ "$label" != "${LANG_CONFIRM:-Confirmar}" && "$label" != "${LANG_BACK:-Voltar}" ]]; then
+                        for (( c=0; c<item_count; c++ )); do checked[$c]=0; done
+                        checked[$active_idx]=1
+                    fi
+                elif [[ "$menu_type" == "checkbox" ]]; then
+                    local label="${raw_items[$active_idx]}"
+                    if [[ "$label" != "${LANG_CONFIRM:-Confirmar}" && "$label" != "${LANG_BACK:-Voltar}" ]]; then
+                        if [[ ${checked[$active_idx]} -eq 1 ]]; then
+                            checked[$active_idx]=0
+                        else
+                            checked[$active_idx]=1
+                        fi
+                    fi
+                fi
+                ;;
+            ENTER)
+                if [[ "$menu_type" == "simple" ]]; then
+                    return $active_idx
+                elif [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
+                    local label="${raw_items[$active_idx]}"
+                    if [[ "$label" == "${LANG_CONFIRM:-Confirmar}" ]]; then
+                        # Return checked indices array as string via global VAR
+                        MENU_CHECKED_INDICES=()
+                        for (( c=0; c<item_count; c++ )); do
+                            if [[ ${checked[$c]} -eq 1 ]]; then
+                                MENU_CHECKED_INDICES+=("$c")
+                            fi
+                        done
+                        return 0
+                    elif [[ "$label" == "${LANG_BACK:-Voltar}" ]]; then
+                        return 1
+                    else
+                        # Toggle item on enter
+                        if [[ "$menu_type" == "radio" ]]; then
+                            for (( c=0; c<item_count; c++ )); do checked[$c]=0; done
+                            checked[$active_idx]=1
+                        else
+                            if [[ ${checked[$active_idx]} -eq 1 ]]; then
+                                checked[$active_idx]=0
+                            else
+                                checked[$active_idx]=1
+                            fi
+                        fi
+                    fi
+                fi
+                ;;
+            BACK)
+                return 1
+                ;;
         esac
     done
 }
 
-show_main_menu() {
-    clear
-    echo
-    echo -e "${BOLD}${LANG_TITLE}${RESET}"
-    echo
-    echo "1) ${LANG_MAIN_OPTION_ALL}"
-    echo "2) ${LANG_MAIN_OPTION_MANUAL}"
-    echo "3) ${LANG_MAIN_OPTION_VERIFY}"
-    echo -e "${RED}4) ${LANG_EXIT}${RESET}"
-    echo "============================"
-    read -p "${LANG_PROMPT_CHOOSE} (1-4): " MAIN_MENU_CHOICE
+# Initial Language Selector
+show_initial_language_menu() {
+    while true; do
+        run_interactive_menu \
+            "${LANG_SELECT_LANG_TITLE:-Select language}" \
+            "" \
+            "" \
+            "simple" \
+            "English" \
+            "Русский" \
+            "Español" \
+            "Português (Brasil)" \
+            "Exit" \
+            "---FOOTER---" \
+            "↑/↓ navigate   Enter select"
+        local choice=$?
+
+        case "$choice" in
+            0) load_language_script "english.sh" && break ;;
+            1) load_language_script "russian.sh" && break ;;
+            2) load_language_script "spanish.sh" && break ;;
+            3) load_language_script "brazilian.sh" && break ;;
+            4) echo "Exiting..."; exit 0 ;;
+        esac
+    done
 }
 
+# Main Menu
+show_main_menu() {
+    run_interactive_menu \
+        "${LANG_MAIN_MENU_TITLE:-Menu principal}" \
+        "" \
+        "" \
+        "simple" \
+        "${LANG_INSTALL_GAMES:-Instalar jogos}" \
+        "${LANG_MANAGE_GAMES:-Gerenciar jogos}" \
+        "${LANG_ACCESS_MANUAL:-Acessar manual}" \
+        "${LANG_OPTIONS:-Opções}" \
+        "${LANG_EXIT:-Sair}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+    MAIN_MENU_CHOICE=$?
+}
+
+# Game Installation Selection Menu
+show_installation_game_selection_menu() {
+    SELECTED_GAME_ARGS=()
+    local -a games=(
+        "Half-Life"
+        "Half-Life: Blue Shift"
+        "Half-Life: Opposing Force"
+        "Half-Life 2"
+        "Half-Life 2: Episode One"
+        "Half-Life 2: Episode Two"
+        "Half-Life: Source"
+        "Counter-Strike"
+        "Counter-Strike: Source"
+        "Day of Defeat: Source"
+        "Team Fortress Classic"
+        "Portal"
+        "${LANG_CONFIRM:-Confirmar}"
+        "${LANG_BACK:-Voltar}"
+    )
+
+    if ! run_interactive_menu \
+        "${LANG_INSTALL_MENU_TITLE:-Menu de instalação}" \
+        "${LANG_SELECT_DESIRED_GAMES:-Selecione os jogos que deseja}" \
+        "" \
+        "checkbox" \
+        "${games[@]}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        return 1
+    fi
+
+    if [[ "${#MENU_CHECKED_INDICES[@]}" -eq 0 ]]; then
+        return 1
+    fi
+
+    local has_goldsrc=0
+    for idx in "${MENU_CHECKED_INDICES[@]}"; do
+        case "$idx" in
+            0|1|2|7|10) has_goldsrc=1 ;; # HL, Blue Shift, Opposing Force, CS, TFC
+            3) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 221 -dir srceng") ;; # HL2
+            4) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 389 -dir srceng" "-branch steam_legacy -app 220 -depot 380 -dir srceng") ;; # Ep1
+            5) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 420 -dir srceng") ;; # Ep2
+            6) SELECTED_GAME_ARGS+=("-app 280 -depot 280 -dir srceng") ;; # HL:Source
+            8) SELECTED_GAME_ARGS+=("-branch previous_build -app 240 -depot 241 -dir srceng") ;; # CS:Source
+            9) SELECTED_GAME_ARGS+=("-branch previous_build -app 300 -depot 301 -dir srceng") ;; # DoD:Source
+            11) SELECTED_GAME_ARGS+=("-app 400 -depot 401 -dir srceng") ;; # Portal
+        esac
+    done
+
+    if [[ $has_goldsrc -eq 1 ]]; then
+        if ! show_goldsrc_version_menu; then
+            return 1
+        fi
+
+        for idx in "${MENU_CHECKED_INDICES[@]}"; do
+            if [[ "$GOLDSRC_SELECTED_VERSION" == "25th" ]]; then
+                case "$idx" in
+                    0) SELECTED_GAME_ARGS+=("-app 70 -depot 1 -dir xash") ;;
+                    1) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash") ;;
+                    2) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash") ;;
+                    7) SELECTED_GAME_ARGS+=("-app 10 -depot 11 -dir xash") ;;
+                    10) SELECTED_GAME_ARGS+=("-app 20 -depot 21 -dir xash") ;;
+                esac
+            else
+                case "$idx" in
+                    0) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 70 -depot 1 -dir xash_old") ;;
+                    1) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash_old") ;;
+                    2) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash_old") ;;
+                    7) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 10 -depot 11 -dir xash_old") ;;
+                    10) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 20 -depot 21 -dir xash_old") ;;
+                esac
+            fi
+        done
+    fi
+
+    return 0
+}
+
+# GoldSrc Version Selection Menu
+show_goldsrc_version_menu() {
+    GOLDSRC_SELECTED_VERSION="25th"
+    local -a opts=(
+        "${LANG_GOLDSRCVERSION_OPTION_25TH:-Versão mais recente}"
+        "${LANG_GOLDSRCVERSION_OPTION_PRE25TH:-Versão anterior ao 25 Aniversário}"
+        "${LANG_CONFIRM:-Confirmar}"
+        "${LANG_BACK:-Voltar}"
+    )
+
+    if ! run_interactive_menu \
+        "${LANG_INSTALL_MENU_TITLE:-Menu de instalação}" \
+        "${LANG_SELECT_GOLDSRC_VERSION:-Selecione a versão deseja para os jogos GoldSrc}" \
+        "" \
+        "radio" \
+        "${opts[@]}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        return 1
+    fi
+
+    if [[ "${MENU_CHECKED_INDICES[0]:-0}" -eq 1 ]]; then
+        GOLDSRC_SELECTED_VERSION="pre25th"
+    else
+        GOLDSRC_SELECTED_VERSION="25th"
+    fi
+    return 0
+}
+
+# Steam Login Menu
+show_steam_login_menu() {
+    STEAM_USERNAME=""
+    STEAM_PASSWORD=""
+
+    if has_saved_credentials && load_saved_credentials; then
+        STEAM_USERNAME="$SAVED_USERNAME"
+        STEAM_PASSWORD="$SAVED_PASSWORD"
+        return 0
+    fi
+
+    while true; do
+        clear
+        echo
+        echo -e "${BOLD}${LANG_INSTALL_MENU_TITLE:-Menu de instalação}${RESET}"
+        echo
+        echo -e "${LANG_ENTER_STEAM_ACCOUNT:-Entre na sua conta Steam}"
+        echo
+        read -p "${LANG_ENTER_USERNAME:-Digite seu usuário:} " STEAM_USERNAME
+        STEAM_PASSWORD="$(read_masked_password "${LANG_ENTER_PASSWORD:-Digite sua senha:}")"
+
+        if [[ -n "$STEAM_USERNAME" && -n "$STEAM_PASSWORD" ]]; then
+            save_credentials "$STEAM_USERNAME" "$STEAM_PASSWORD"
+            return 0
+        fi
+    done
+}
+
+# Options Menu
+show_options_menu() {
+    while true; do
+        run_interactive_menu \
+            "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+            "" \
+            "" \
+            "simple" \
+            "${LANG_STEAM_ACCOUNTS:-Contas Steam}" \
+            "${LANG_INTERFACE_LANG:-Idiomas}" \
+            "${LANG_DISPLAY_SETTINGS:-Exibir}" \
+            "${LANG_BACK:-Voltar}" \
+            "---FOOTER---" \
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+        local opt_choice=$?
+
+        case "$opt_choice" in
+            0) show_steam_accounts_menu ;;
+            1) show_languages_menu ;;
+            2) show_display_options_menu ;;
+            3) return 0 ;;
+        esac
+    done
+}
+
+# Steam Accounts Menu
+show_steam_accounts_menu() {
+    while true; do
+        load_saved_credentials 2>/dev/null || true
+
+        local subtitle="${LANG_SAVED_ACCOUNTS_HEADER:-Contas salvas:}\n"
+        if [[ "${#SAVED_USERNAMES[@]}" -gt 0 ]]; then
+            for (( i=0; i<${#SAVED_USERNAMES[@]}; i++ )); do
+                if [[ $i -eq ${SAVED_ACTIVE_INDEX:-0} ]]; then
+                    subtitle+="${GREEN}${SAVED_USERNAMES[$i]} (${LANG_IN_USE:-em uso})${RESET}\n"
+                else
+                    subtitle+="${SAVED_USERNAMES[$i]}\n"
+                fi
+            done
+        else
+            subtitle+="${YELLOW}(Nenhuma conta salva)${RESET}\n"
+        fi
+
+        run_interactive_menu \
+            "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+            "$subtitle" \
+            "" \
+            "simple" \
+            "${LANG_CHANGE_USED_ACCOUNT:-Alterar conta usada}" \
+            "${LANG_ADD_NEW_ACCOUNT:-Adicionar uma nova conta}" \
+            "${LANG_REMOVE_SAVED_ACCOUNTS:-Remover contas salvas}" \
+            "${LANG_BACK:-Voltar}" \
+            "---FOOTER---" \
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+        local choice=$?
+
+        case "$choice" in
+            0)
+                if [[ "${#SAVED_USERNAMES[@]}" -gt 0 ]]; then
+                    local -a account_opts=()
+                    for (( i=0; i<${#SAVED_USERNAMES[@]}; i++ )); do
+                        account_opts+=("${SAVED_USERNAMES[$i]}")
+                    done
+                    account_opts+=("${LANG_CONFIRM:-Confirmar}" "${LANG_BACK:-Voltar}")
+
+                    if run_interactive_menu "${LANG_OPTIONS_MENU_TITLE:-Opções}" "${LANG_CHANGE_USED_ACCOUNT:-Alterar conta usada}" "" "radio" "${account_opts[@]}" "---FOOTER---" "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+                        local selected_acc_idx="${MENU_CHECKED_INDICES[0]:-0}"
+                        set_active_account "$selected_acc_idx"
+                    fi
+                fi
+                ;;
+            1)
+                clear
+                echo
+                echo -e "${BOLD}${LANG_OPTIONS_MENU_TITLE:-Opções}${RESET}"
+                echo
+                local new_user new_pass
+                read -p "${LANG_ENTER_USERNAME:-Digite seu usuário:} " new_user
+                new_pass="$(read_masked_password "${LANG_ENTER_PASSWORD:-Digite sua senha:}")"
+                if [[ -n "$new_user" && -n "$new_pass" ]]; then
+                    save_credentials "$new_user" "$new_pass"
+                fi
+                ;;
+            2)
+                delete_saved_credentials
+                ;;
+            3)
+                return 0
+                ;;
+        esac
+    done
+}
+
+# Languages Submenu
+show_languages_menu() {
+    while true; do
+        run_interactive_menu \
+            "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+            "" \
+            "" \
+            "simple" \
+            "${LANG_INTERFACE_LANG:-Idioma da interface}" \
+            "${LANG_GAMES_LANG:-Idioma dos jogos}" \
+            "${LANG_BACK:-Voltar}" \
+            "---FOOTER---" \
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+        local lang_choice=$?
+
+        case "$lang_choice" in
+            0) show_interface_language_menu ;;
+            1) show_games_language_menu ;;
+            2) return 0 ;;
+        esac
+    done
+}
+
+# Interface Language Menu
+show_interface_language_menu() {
+    local -a lang_opts=(
+        "English"
+        "Русский"
+        "Español"
+        "Português (Brasil)"
+        "${LANG_CONFIRM:-Confirmar}"
+        "${LANG_BACK:-Voltar}"
+    )
+
+    if run_interactive_menu \
+        "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+        "${LANG_SELECT_INTERFACE_LANG:-Selecione o idioma deseja para a interface}" \
+        "" \
+        "radio" \
+        "${lang_opts[@]}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        case "${MENU_CHECKED_INDICES[0]:-0}" in
+            0) load_language_script "english.sh" ;;
+            1) load_language_script "russian.sh" ;;
+            2) load_language_script "spanish.sh" ;;
+            3) load_language_script "brazilian.sh" ;;
+        esac
+    fi
+}
+
+# Games Language Menu
+show_games_language_menu() {
+    local -a game_lang_opts=(
+        "English"
+        "Русский"
+        "Español"
+        "Français"
+        "Deutsch"
+        "Italiano"
+        "Português (Brasil)"
+        "${LANG_CONFIRM:-Confirmar}"
+        "${LANG_BACK:-Voltar}"
+    )
+
+    if run_interactive_menu \
+        "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+        "${LANG_SELECT_GAMES_LANG:-Selecione o idioma deseja para os jogos}" \
+        "${LANG_GAMES_LANG_NOTE:-Nota: alguns idiomas não estão disponíveis em todos os jogos ou tem traduções de maneira oficial, então nesses casos são usadas traduções da comunidade quando disponíveis.}" \
+        "radio" \
+        "${game_lang_opts[@]}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+        case "${MENU_CHECKED_INDICES[0]:-0}" in
+            0) SELECTED_OFFICIAL_LANG="english" ;;
+            1) SELECTED_OFFICIAL_LANG="russian" ;;
+            2) SELECTED_OFFICIAL_LANG="spanish" ;;
+            3) SELECTED_OFFICIAL_LANG="french" ;;
+            4) SELECTED_OFFICIAL_LANG="german" ;;
+            5) SELECTED_OFFICIAL_LANG="italian" ;;
+            6) SELECTED_OFFICIAL_LANG="portuguese" ;;
+        esac
+        TRANSLATION_MODE="official"
+    fi
+}
+
+# Display Options Menu
+show_display_options_menu() {
+    local current_dry="${DRY_RUN:-0}"
+    local dry_label="Desativado"
+    [[ "$current_dry" == "1" ]] && dry_label="Ativado"
+
+    run_interactive_menu \
+        "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
+        "Modo de Simulação (Dry-Run): $dry_label" \
+        "" \
+        "simple" \
+        "Alternar Modo Simulação (Dry-Run)" \
+        "${LANG_BACK:-Voltar}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+    local choice=$?
+
+    if [[ $choice -eq 0 ]]; then
+        if [[ "${DRY_RUN:-0}" == "1" ]]; then
+            export DRY_RUN="0"
+        else
+            export DRY_RUN="1"
+        fi
+    fi
+}
+
+# Game Management Menu
+show_game_management_menu() {
+    while true; do
+        run_interactive_menu \
+            "${LANG_MANAGEMENT_TITLE:-Gerenciamento de jogos}" \
+            "" \
+            "" \
+            "simple" \
+            "${LANG_UNINSTALL_GAME:-Desinstalar jogo}" \
+            "${LANG_VERIFY_INTEGRITY:-Atualizar/Verificar integridade}" \
+            "${LANG_BACK:-Voltar}" \
+            "---FOOTER---" \
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+        local choice=$?
+
+        case "$choice" in
+            0) show_uninstall_game_selection_menu ;;
+            1)
+                show_verify_integrity_menu
+                if [[ "${#VERIFY_INDICES[@]}" -gt 0 ]]; then
+                    show_steam_login_menu
+                    execute_verification_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD" "${VERIFY_INDICES[@]}"
+                fi
+                ;;
+            2) return 0 ;;
+        esac
+    done
+}
+
+# Uninstall Selection Menu
+show_uninstall_game_selection_menu() {
+    load_installed_games_list
+    local count="${#INSTALLED_GAMES_ARGS[@]}"
+
+    if [[ "$count" -eq 0 ]]; then
+        clear
+        echo
+        echo -e "${YELLOW}${LANG_NO_INSTALLED_GAMES:-Nenhum jogo instalado foi encontrado.}${RESET}"
+        sleep 2
+        return 1
+    fi
+
+    local -a uninstall_opts=()
+    for name in "${INSTALLED_GAMES_NAMES[@]}"; do
+        uninstall_opts+=("$name")
+    done
+    uninstall_opts+=("${LANG_CONFIRM:-Confirmar}" "${LANG_BACK:-Voltar}")
+
+    if run_interactive_menu \
+        "${LANG_MANAGEMENT_TITLE:-Gerenciamento de jogos}" \
+        "${LANG_SELECT_UNINSTALL_GAMES:-Selecione os jogos que deseja desinstalar}" \
+        "" \
+        "checkbox" \
+        "${uninstall_opts[@]}" \
+        "---FOOTER---" \
+        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"; then
+
+        for idx in "${MENU_CHECKED_INDICES[@]}"; do
+            local game_args="${INSTALLED_GAMES_ARGS[$idx]:-}"
+            local game_dir="$(get_dir_from_args "$game_args")"
+            if [[ -n "$game_dir" ]]; then
+                echo -e "${YELLOW}Removendo diretório: ${SET_DIR}${game_dir}${RESET}"
+                rm -rf "${SET_DIR}${game_dir}" 2>/dev/null || true
+            fi
+        done
+        echo -e "${GREEN}Jogos selecionados foram removidos.${RESET}"
+        sleep 2
+    fi
+}
+
+# Verify Integrity Menu
 show_verify_integrity_menu() {
     load_installed_games_list
     local count="${#INSTALLED_GAMES_ARGS[@]}"
@@ -47,451 +644,50 @@ show_verify_integrity_menu() {
     if [[ "$count" -eq 0 ]]; then
         clear
         echo
-        echo -e "${YELLOW}${LANG_NO_INSTALLED_GAMES}${RESET}"
-        sleep 2.5
+        echo -e "${YELLOW}${LANG_NO_INSTALLED_GAMES:-Nenhum jogo instalado foi encontrado.}${RESET}"
+        sleep 2
         return 1
     fi
 
     VERIFY_INDICES=()
-
-    clear
-    echo
-    echo -e "${BOLD}${LANG_VERIFY_TITLE}${RESET}"
-    echo
-    echo "1) ${LANG_VERIFY_ALL}"
-    echo "2) ${LANG_VERIFY_MANUAL}"
-    echo
-    echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-    echo "============================"
-    local verify_option
-    read -p "${LANG_PROMPT_CHOOSE} (1-2): " verify_option
-
-    if [[ "$verify_option" == "b" ]]; then
-        return 1
-    fi
-
-    case "$verify_option" in
-        1)
-            for (( i=0; i<count; i++ )); do
-                VERIFY_INDICES+=("$i")
-            done
-            return 0
-            ;;
-        2)
-            clear
-            echo
-            echo -e "${BOLD}${LANG_VERIFY_TITLE}${RESET}"
-            echo
-            local idx=1
-            for name in "${INSTALLED_GAMES_NAMES[@]}"; do
-                echo "${idx}) ${name}"
-                ((idx++))
-            done
-            echo
-            echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-            echo "============================"
-            local selections
-            read -p "${LANG_PROMPT_CHOOSE_MORE} (1-$((count))): " selections
-
-            if [[ "$selections" == "b" ]]; then
-                return 1
-            fi
-
-            local -a choices
-            IFS=',' read -ra choices <<< "$selections"
-            for c in "${choices[@]}"; do
-                if [[ "$c" =~ ^[0-9]+$ ]] && (( c >= 1 && c <= count )); then
-                    VERIFY_INDICES+=("$((c-1))")
-                fi
-            done
-
-            if [[ "${#VERIFY_INDICES[@]}" -eq 0 ]]; then
-                return 1
-            fi
-            return 0
-            ;;
-        *)
-            echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-            sleep 2
-            return 1
-            ;;
-    esac
-}
-
-show_all_games_menu() {
-    local all_option
-    clear
-    echo
-    echo -e "${BOLD}${LANG_TITLE}${RESET}"
-    echo
-    echo "1) ${LANG_MAIN_OPTION_ALL}"
-    echo "2) ${LANG_ALL_SOURCE}"
-    echo "3) ${LANG_ALL_GOLDSRC}"
-    echo
-    echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-    echo "============================"
-    read -p "${LANG_PROMPT_CHOOSE} (1-3): " all_option
-
-    if [[ "$all_option" == "b" ]]; then
-        return 1
-    fi
-
-    if [[ "$all_option" == "1" || "$all_option" == "3" ]]; then
-        if ! show_goldsrc_version_menu; then
-            return 1
-        fi
-    fi
-
-    if [[ "$all_option" == "1" || "$all_option" == "2" ]]; then
-        add_source_games
-    fi
-    return 0
-}
-
-show_goldsrc_version_menu() {
-    local version_choice
-    clear
-    echo
-    echo -e "${BOLD}${LANG_GOLDSRCVERSION_TITLE}${RESET}"
-    echo
-    echo "1) ${LANG_GOLDSRCVERSION_OPTION_25TH}"
-    echo "2) ${LANG_GOLDSRCVERSION_OPTION_PRE25TH}"
-    echo -e "${YELLOW}${LANG_WARNING_OLD_VERSION}${RESET}"
-    echo "3) ${LANG_BOTH}"
-    echo
-    echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-    echo "============================"
-    read -p "${LANG_PROMPT_CHOOSE} (1-3): " version_choice
-
-    if [[ "$version_choice" == "b" ]]; then
-        return 1
-    fi
-
-    [[ "$version_choice" == "1" || "$version_choice" == "3" ]] && add_goldsrc_25
-    [[ "$version_choice" == "2" || "$version_choice" == "3" ]] && add_goldsrc_pre25
-    return 0
-}
-
-show_manual_game_selection_menu() {
-    while true; do
-        clear
-        echo
-        echo -e "${BOLD}${LANG_TITLE}${RESET}"
-        echo
-        echo -e "${BOLD}${LANG_GAMES_TITLE_SOURCE}${RESET}"
-        echo -e "${ORANGE}1) Half-Life 2${RESET}"
-        echo -e "${ORANGE}2) Half-Life 2: Episode 1${RESET}"
-        echo -e "${ORANGE}3) Half-Life 2: Episode 2${RESET}"
-        echo -e "${ORANGE}4) Half-Life 2: Deathmatch${RESET}"
-        echo -e "${ORANGE}5) Half-Life: Source${RESET}"
-        echo "6) Counter-Strike: Source"
-        echo "7) Day of Defeat: Source"
-        echo -e "${CYAN}8) Portal${RESET}"
-        echo
-        echo -e "${BOLD}${LANG_GAMES_TITLE_GOLDSRC}${RESET}"
-        echo -e "${ORANGE}9) Half-Life${RESET}"
-        echo -e "${BLUE}10) Half-Life: Blue Shift${RESET}"
-        echo -e "${GREEN}11) Half-Life: Opposing Force${RESET}"
-        echo "12) Counter-Strike"
-        echo -e "${YELLOW}13) Team Fortress Classic${RESET}"
-        echo
-        echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-        echo "============================"
-        read -p "${LANG_PROMPT_CHOOSE_MORE} (1–13): " selections
-
-        if [[ "$selections" == "b" ]]; then
-            return 1
-        fi
-
-        local -a choices
-        IFS=',' read -ra choices <<< "$selections"
-        local -a goldsrc_choices=()
-
-        for choice in "${choices[@]}"; do
-            case "$choice" in
-                1) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 221 -dir srceng") ;;
-                2) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 389 -dir srceng" "-branch steam_legacy -app 220 -depot 380 -dir srceng") ;;
-                3) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 420 -dir srceng") ;;
-                4) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 320 -depot 321 -dir srceng") ;;
-                5) SELECTED_GAME_ARGS+=("-app 280 -depot 280 -dir srceng") ;;
-                6) SELECTED_GAME_ARGS+=("-branch previous_build -app 240 -depot 241 -dir srceng") ;;
-                7) SELECTED_GAME_ARGS+=("-branch previous_build -app 300 -depot 301 -dir srceng") ;;
-                8) SELECTED_GAME_ARGS+=("-app 400 -depot 401 -dir srceng") ;;
-                9|10|11|12|13) goldsrc_choices+=("$choice") ;;
-            esac
-        done
-
-        if [[ "${#goldsrc_choices[@]}" -gt 0 ]]; then
-            local version_choice
-            clear
-            echo
-            echo -e "${BOLD}${LANG_GOLDSRCVERSION_TITLE}${RESET}"
-            echo
-            echo "1) ${LANG_GOLDSRCVERSION_OPTION_25TH}"
-            echo "2) ${LANG_GOLDSRCVERSION_OPTION_PRE25TH}"
-            echo -e "${YELLOW}${LANG_WARNING_OLD_VERSION}${RESET}"
-            echo "3) ${LANG_BOTH}"
-            echo
-            echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-            echo "============================"
-            read -p "${LANG_PROMPT_CHOOSE} (1-3): " version_choice
-
-            if [[ "$version_choice" == "b" ]]; then
-                return 1
-            fi
-
-            for choice in "${goldsrc_choices[@]}"; do
-                if [[ "$version_choice" == "1" || "$version_choice" == "3" ]]; then
-                    case "$choice" in
-                        9)  SELECTED_GAME_ARGS+=("-app 70 -depot 1 -dir xash") ;;
-                        10) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash") ;;
-                        11) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash") ;;
-                        12) SELECTED_GAME_ARGS+=("-app 10 -depot 11 -dir xash") ;;
-                        13) SELECTED_GAME_ARGS+=("-app 20 -depot 21 -dir xash") ;;
-                    esac
-                fi
-                if [[ "$version_choice" == "2" || "$version_choice" == "3" ]]; then
-                    case "$choice" in
-                        9)  SELECTED_GAME_ARGS+=("-branch steam_legacy -app 70 -depot 1 -dir xash_old") ;;
-                        10) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash_old") ;;
-                        11) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash_old") ;;
-                        12) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 10 -depot 11 -dir xash_old") ;;
-                        13) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 20 -depot 21 -dir xash_old") ;;
-                    esac
-                fi
-            done
-        fi
-
-        if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
-            echo -e "${RED}${LANG_NO_GAMES}${RESET}"
-            sleep 2
-            return 1
-        fi
-        break
+    for (( i=0; i<count; i++ )); do
+        VERIFY_INDICES+=("$i")
     done
     return 0
 }
 
-show_language_pack_menu() {
-    local choose_langpacks
-    TRANSLATION_MODE=""
-    SELECTED_OFFICIAL_LANG=""
-    SELECTED_COMMUNITY_LANG=""
-
+# Documentation & Manual Reader Menu
+show_manual_menu() {
     while true; do
-        clear
-        echo
-        echo -e "${BOLD}${LANG_ASK_LANGUAGE_PACKS}${RESET}"
-        echo
-        echo "1) ${LANG_YES}"
-        echo "2) ${LANG_NO}"
-        echo
-        echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-        echo "============================"
-        read -p "${LANG_PROMPT_CHOOSE} (1-2): " choose_langpacks
+        run_interactive_menu \
+            "${LANG_MANUAL_TITLE:-Manual e Documentação}" \
+            "Selecione um tópico para leitura:" \
+            "" \
+            "simple" \
+            "Guia de Início Rápido (getting-started.md)" \
+            "Jogos Suportados (supported-games.md)" \
+            "Mods Suportados (supported-mods.md)" \
+            "${LANG_BACK:-Voltar}" \
+            "---FOOTER---" \
+            "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
+        local choice=$?
 
-        if [[ "$choose_langpacks" == "b" ]]; then
-            return 1
-        fi
-
-        case "$choose_langpacks" in
-            1)
-                while true; do
-                    local translation_type
-                    clear
-                    echo
-                    echo -e "${BOLD}${LANG_TRANSLATION_TYPE}${RESET}"
-                    echo
-                    echo "1) ${LANG_TRANSLATION_OFFICIAL}"
-                    echo "2) ${LANG_TRANSLATION_COMMUNITY}"
-                    echo
-                    echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-                    echo "============================"
-                    read -p "${LANG_PROMPT_CHOOSE} (1-2): " translation_type
-
-                    if [[ "$translation_type" == "b" ]]; then
-                        break
-                    fi
-
-                    case "$translation_type" in
-                        1)
-                            TRANSLATION_MODE="official"
-                            local -a available_langs=()
-                            for game_args in "${SELECTED_GAME_ARGS[@]}"; do
-                                local appid
-                                local depot
-                                appid="$(get_app_id_from_args "$game_args")"
-                                depot="$(get_depot_id_from_args "$game_args")"
-
-                                case "$appid" in
-                                    220)
-                                        [[ $depot == 221 ]] && available_langs+=("${!HL2_LANG_DEPOTS[@]}")
-                                        [[ $depot == 389 || $depot == 380 ]] && available_langs+=("${!HL2_EP1_LANG_DEPOTS[@]}")
-                                        [[ $depot == 420 ]] && available_langs+=("${!HL2_EP2_LANG_DEPOTS[@]}")
-                                        ;;
-                                    240) available_langs+=("${!CSS_LANG_DEPOTS[@]}") ;;
-                                    400) available_langs+=("${!PORTAL_LANG_DEPOTS[@]}") ;;
-                                    70)  available_langs+=("${!HL_LANG_DEPOTS[@]}") ;;
-                                    130) available_langs+=("${!HLBS_LANG_DEPOTS[@]}") ;;
-                                    50)  available_langs+=("${!HLOF_LANG_DEPOTS[@]}") ;;
-                                    10)  available_langs+=("${!CS_LANG_DEPOTS[@]}") ;;
-                                    20)  available_langs+=("${!TFC_LANG_DEPOTS[@]}") ;;
-                                esac
-                            done
-
-                            available_langs=($(printf "%s\n" "${available_langs[@]}" | sort -u))
-
-                            clear
-                            echo
-                            echo -e "${BOLD}${LANG_SELECT_LANGUAGE_PACK}${RESET}"
-                            echo
-                            local i=1
-                            declare -A lang_menu
-                            for lang in "${available_langs[@]}"; do
-                                echo "$i) ${LANG_DISPLAY_NAMES[$lang]:-$lang}"
-                                lang_menu[$i]=$lang
-                                ((i++))
-                            done
-                            echo
-                            echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-                            echo "============================"
-                            read -p "${LANG_PROMPT_CHOOSE} (1-$((i-1))): " lang_choice
-
-                            if [[ "$lang_choice" == "b" ]]; then
-                                break
-                            elif [[ "$lang_choice" =~ ^[0-9]+$ ]] && (( lang_choice >= 1 && lang_choice <= i-1 )); then
-                                SELECTED_OFFICIAL_LANG="${lang_menu[$lang_choice]}"
-                                return 0
-                            else
-                                echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-                                sleep 2
-                            fi
-                            ;;
-                        2)
-                            TRANSLATION_MODE="community"
-                            setup_community_translations
-                            local -a community_available_langs=()
-
-                            for game_args in "${SELECTED_GAME_ARGS[@]}"; do
-                                local appid
-                                local depot
-                                appid="$(get_app_id_from_args "$game_args")"
-                                depot="$(get_depot_id_from_args "$game_args")"
-
-                                for lang_code in "${!COMMUNITY_LANG_DISPLAY[@]}"; do
-                                    local key_dep="${appid}:${depot},${lang_code}"
-                                    local key_app="${appid},${lang_code}"
-                                    if [[ -n "${COMMUNITY_URLS[$key_dep]:-}" || -n "${COMMUNITY_URLS[$key_app]:-}" ]]; then
-                                        if ! printf '%s\n' "${community_available_langs[@]}" | grep -qx "$lang_code"; then
-                                            community_available_langs+=("$lang_code")
-                                        fi
-                                    fi
-                                done
-                            done
-
-                            if [[ "${#community_available_langs[@]}" -eq 0 ]]; then
-                                echo -e "${YELLOW}${LANG_NO_COMMUNITY_PACKS_AVAILABLE}${RESET}"
-                                sleep 2
-                                TRANSLATION_MODE=""
-                                continue
-                            fi
-
-                            clear
-                            echo
-                            echo -e "${BOLD}${LANG_SELECT_LANGUAGE_PACK}${RESET}"
-                            echo
-                            local i=1
-                            declare -A community_menu
-                            for lang_code in "${community_available_langs[@]}"; do
-                                echo -e "$i) ${COMMUNITY_LANG_DISPLAY[$lang_code]}"
-                                community_menu[$i]=$lang_code
-                                ((i++))
-                            done
-                            echo
-                            echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
-                            echo "============================"
-                            read -p "${LANG_PROMPT_CHOOSE} (1-$((i-1))): " lang_choice
-
-                            if [[ "$lang_choice" == "b" ]]; then
-                                TRANSLATION_MODE=""
-                                break
-                            elif [[ "$lang_choice" =~ ^[0-9]+$ ]] && (( lang_choice >= 1 && lang_choice <= i-1 )); then
-                                SELECTED_COMMUNITY_LANG="${community_menu[$lang_choice]}"
-                                return 0
-                            else
-                                echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-                                sleep 2
-                            fi
-                            ;;
-                        *)
-                            echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-                            sleep 2
-                            ;;
-                    esac
-                done
-                ;;
-            2)
-                return 0
-                ;;
-            *)
-                echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-                sleep 2
-                ;;
+        local doc_file=""
+        case "$choice" in
+            0) doc_file="${SCRIPT_DIR}/docs/getting-started.md" ;;
+            1) doc_file="${SCRIPT_DIR}/docs/supported-games.md" ;;
+            2) doc_file="${SCRIPT_DIR}/docs/supported-mods.md" ;;
+            3) return 0 ;;
         esac
-    done
-}
 
-prompt_steam_credentials() {
-    STEAM_USERNAME=""
-    STEAM_PASSWORD=""
-
-    if has_saved_credentials && load_saved_credentials; then
-        while true; do
-            local choice
+        if [[ -f "$doc_file" ]]; then
             clear
+            echo -e "${BOLD}========================================${RESET}"
+            echo -e "${BOLD}${doc_file##*/}${RESET}"
+            echo -e "${BOLD}========================================${RESET}\n"
+            cat "$doc_file"
             echo
-            echo -e "${BOLD}${LANG_SAVED_CREDENTIALS_FOUND}${RESET} ${GREEN}${SAVED_USERNAME}${RESET}"
-            echo
-            echo "1) ${LANG_USE_SAVED_CREDENTIALS} (${SAVED_USERNAME})"
-            echo "2) ${LANG_ENTER_DIFFERENT_CREDENTIALS}"
-            echo "3) ${LANG_DELETE_SAVED_CREDENTIALS}"
-            echo "============================"
-            read -p "${LANG_PROMPT_CHOOSE} (1-3): " choice
-
-            case "$choice" in
-                1)
-                    STEAM_USERNAME="$SAVED_USERNAME"
-                    STEAM_PASSWORD="$SAVED_PASSWORD"
-                    return 0
-                    ;;
-                2)
-                    break
-                    ;;
-                3)
-                    delete_saved_credentials
-                    break
-                    ;;
-                *)
-                    echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
-                    sleep 2
-                    ;;
-            esac
-        done
-    fi
-
-    clear
-    read -p "${LANG_ENTER_USERNAME} " STEAM_USERNAME
-    STEAM_PASSWORD="$(read_masked_password "${LANG_ENTER_PASSWORD}")"
-
-    local save_choice
-    echo
-    echo -e "${BOLD}${LANG_ASK_SAVE_CREDENTIALS}${RESET}"
-    echo "1) ${LANG_YES}"
-    echo "2) ${LANG_NO}"
-    echo "============================"
-    read -p "${LANG_PROMPT_CHOOSE} (1-2): " save_choice
-
-    if [[ "$save_choice" == "1" ]]; then
-        save_credentials "$STEAM_USERNAME" "$STEAM_PASSWORD"
-    fi
+            read -p "${LANG_PRESS_ENTER:-Pressione ENTER para voltar...}" _
+        fi
+    done
 }

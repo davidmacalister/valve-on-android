@@ -147,18 +147,22 @@ execute_downloads() {
         local depot
         local game_name
         local target_dir_name
+        local game_color
 
         appid="$(get_app_id_from_args "$game_args")"
         depot="$(get_depot_id_from_args "$game_args")"
         game_name="$(get_game_name "$appid" "$depot")"
         target_dir_name="$(get_dir_from_args "$game_args")"
+        game_color="$(get_game_color "$game_name")"
 
         clear
-        echo -e "${BOLD}${GREEN}========================================${RESET}"
-        echo -e "${BOLD}${GREEN}${LANG_DOWNLOADING}${RESET} ${game_name}"
-        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
+        echo
+        echo -e "${BOLD}${LANG_INSTALL_MENU_TITLE:-Menu de instalação}${RESET}"
+        echo
+        echo -e "${game_color}${game_name}${RESET}"
+        echo
 
-        # Convert space-separated string arguments into array safely (no eval)
+        # Convert space-separated string arguments into array safely
         local -a arg_tokens=( $game_args )
         local -a full_cmd=(
             depotdownloader
@@ -169,43 +173,51 @@ execute_downloads() {
             "${arg_tokens[@]}"
         )
 
-        local download_status=0
-        if [[ "${DRY_RUN:-0}" == "1" ]]; then
-            echo -e "${YELLOW}[DRY RUN] Simulated Base Game Command:${RESET}"
-            echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
-        else
-            "${full_cmd[@]}" || download_status=1
+        if ! run_step_with_spinner \
+            "${LANG_STATUS_DOWNLOADING:-Baixando}" \
+            "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+            "${full_cmd[@]}"; then
+            return 1
         fi
 
-        if [[ $download_status -ne 0 ]]; then
-            echo -e "\n${BOLD}${RED}========================================${RESET}"
-            echo -e "${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}"
-            echo -e "${BOLD}${RED}========================================${RESET}\n"
+        if ! run_step_with_spinner \
+            "${LANG_STATUS_INSTALLING:-Instalando}" \
+            "${LANG_STATUS_INSTALL_SUCCESS:-Instalado com sucesso.}" \
+            sleep 0.5; then
             return 1
-        else
-            echo -e "${BOLD}${GREEN}[✓] ${LANG_BASE_GAME_SUCCESS:-Base game files downloaded successfully.}${RESET}"
         fi
 
         # Handle official language pack downloads if selected
         if [[ "$TRANSLATION_MODE" == "official" && -n "$SELECTED_OFFICIAL_LANG" ]]; then
-            if ! run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG"; then
-                echo -e "\n${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}\n"
+            if ! run_step_with_spinner \
+                "${LANG_STATUS_DOWNLOADING_OFFICIAL_LANG:-Baixando pacote de idioma oficial}" \
+                "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+                run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG"; then
                 return 1
             fi
         fi
 
         # Handle community language pack downloads if selected
         if [[ "$TRANSLATION_MODE" == "community" && -n "$SELECTED_COMMUNITY_LANG" ]]; then
-            run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG" "$target_dir_name"
+            if ! run_step_with_spinner \
+                "${LANG_STATUS_DOWNLOADING_COMMUNITY_LANG:-Baixando pacote de idioma comunitário}" \
+                "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+                run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG" "$target_dir_name"; then
+                return 1
+            fi
+
+            run_step_with_spinner \
+                "${LANG_STATUS_INSTALLING_PACK:-Instalando pacote}" \
+                "${LANG_STATUS_INSTALL_SUCCESS:-Instalado com sucesso.}" \
+                sleep 0.5
         fi
 
         # Record successful installation in history log
         record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$TRANSLATION_MODE" "$SELECTED_OFFICIAL_LANG" "$SELECTED_COMMUNITY_LANG"
-
-        echo -e "\n${BOLD}${GREEN}========================================${RESET}"
-        echo -e "${BOLD}${GREEN}[✓] ${game_name} ${LANG_GAME_INSTALL_SUCCESS:-was successfully installed!}${RESET}"
-        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
     done
+
+    echo
+    read -p "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte ENTER para voltar ao menu principal}" _
 }
 
 execute_verification_downloads() {
@@ -224,16 +236,20 @@ execute_verification_downloads() {
         local off_lang="${INSTALLED_GAMES_OFF_LANGS[$idx]:-}"
         local comm_lang="${INSTALLED_GAMES_COMM_LANGS[$idx]:-}"
         local target_dir_name
+        local game_color
 
         [[ -z "$appid" ]] && appid="$(get_app_id_from_args "$game_args")"
         [[ -z "$depot" ]] && depot="$(get_depot_id_from_args "$game_args")"
         [[ -z "$game_name" ]] && game_name="$(get_game_name "$appid" "$depot")"
         target_dir_name="$(get_dir_from_args "$game_args")"
+        game_color="$(get_game_color "$game_name")"
 
         clear
-        echo -e "${BOLD}${GREEN}========================================${RESET}"
-        echo -e "${BOLD}${GREEN}${LANG_VERIFYING:-Verifying integrity and updating:}${RESET} ${game_name}"
-        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
+        echo
+        echo -e "${BOLD}${LANG_MANAGEMENT_TITLE:-Gerenciamento de jogos}${RESET}"
+        echo
+        echo -e "${game_color}${game_name}${RESET}"
+        echo
 
         local -a arg_tokens=( $game_args )
         local -a full_cmd=(
@@ -245,35 +261,38 @@ execute_verification_downloads() {
             "${arg_tokens[@]}"
         )
 
-        local download_status=0
-        if [[ "${DRY_RUN:-0}" == "1" ]]; then
-            echo -e "${YELLOW}[DRY RUN] Simulated Verification Command:${RESET}"
-            echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
-        else
-            "${full_cmd[@]}" || download_status=1
+        if ! run_step_with_spinner \
+            "${LANG_STATUS_DOWNLOADING:-Baixando}" \
+            "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+            "${full_cmd[@]}"; then
+            return 1
         fi
 
-        if [[ $download_status -ne 0 ]]; then
-            echo -e "\n${BOLD}${RED}========================================${RESET}"
-            echo -e "${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}"
-            echo -e "${BOLD}${RED}========================================${RESET}\n"
+        if ! run_step_with_spinner \
+            "${LANG_STATUS_INSTALLING:-Instalando}" \
+            "${LANG_STATUS_INSTALL_SUCCESS:-Instalado com sucesso.}" \
+            sleep 0.5; then
             return 1
-        else
-            echo -e "${BOLD}${GREEN}[✓] ${LANG_BASE_GAME_SUCCESS:-Base game files downloaded successfully.}${RESET}"
         fi
 
         if [[ "$trans_mode" == "official" && -n "$off_lang" ]]; then
-            run_official_language_download "$appid" "$depot" "$username" "$password" "$off_lang" || return 1
+            run_step_with_spinner \
+                "${LANG_STATUS_DOWNLOADING_OFFICIAL_LANG:-Baixando pacote de idioma oficial}" \
+                "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+                run_official_language_download "$appid" "$depot" "$username" "$password" "$off_lang" || return 1
         fi
 
         if [[ "$trans_mode" == "community" && -n "$comm_lang" ]]; then
-            run_community_language_download "$appid" "$depot" "$game_name" "$comm_lang" "$target_dir_name"
+            run_step_with_spinner \
+                "${LANG_STATUS_DOWNLOADING_COMMUNITY_LANG:-Baixando pacote de idioma comunitário}" \
+                "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
+                run_community_language_download "$appid" "$depot" "$game_name" "$comm_lang" "$target_dir_name"
         fi
 
         record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$trans_mode" "$off_lang" "$comm_lang"
-
-        echo -e "\n${BOLD}${GREEN}========================================${RESET}"
-        echo -e "${BOLD}${GREEN}[✓] ${game_name} ${LANG_GAME_INSTALL_SUCCESS:-was successfully installed!}${RESET}"
-        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
     done
+
+    echo
+    read -p "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte ENTER para voltar ao menu principal}" _
 }
+

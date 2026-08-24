@@ -27,17 +27,49 @@ load_saved_credentials() {
     local cred_file
     cred_file="$(get_credentials_file_path)"
 
+    SAVED_USERNAMES=()
+    SAVED_PASSWORDS=()
+    SAVED_ACTIVE_INDEX=-1
+    SAVED_USERNAME=""
+    SAVED_PASSWORD=""
+
     if has_saved_credentials; then
-        SAVED_USERNAME=""
-        SAVED_PASSWORD=""
+        local idx=0
         while IFS='=' read -r key value || [[ -n "$key" ]]; do
             case "$key" in
-                USERNAME) SAVED_USERNAME="$value" ;;
-                PASSWORD) SAVED_PASSWORD="$value" ;;
+                ACCOUNT)
+                    IFS=':' read -r uname pass active <<< "$value"
+                    if [[ -n "$uname" && -n "$pass" ]]; then
+                        SAVED_USERNAMES+=("$uname")
+                        SAVED_PASSWORDS+=("$pass")
+                        if [[ "$active" == "1" || "$SAVED_ACTIVE_INDEX" -eq -1 ]]; then
+                            SAVED_ACTIVE_INDEX=$idx
+                        fi
+                        ((idx++))
+                    fi
+                    ;;
+                USERNAME)
+                    SAVED_USERNAME="$value"
+                    ;;
+                PASSWORD)
+                    SAVED_PASSWORD="$value"
+                    ;;
             esac
         done < "$cred_file"
 
-        if [[ -n "$SAVED_USERNAME" && -n "$SAVED_PASSWORD" ]]; then
+        # Backward compatibility for legacy single-account file format
+        if [[ "${#SAVED_USERNAMES[@]}" -eq 0 && -n "$SAVED_USERNAME" && -n "$SAVED_PASSWORD" ]]; then
+            SAVED_USERNAMES+=("$SAVED_USERNAME")
+            SAVED_PASSWORDS+=("$SAVED_PASSWORD")
+            SAVED_ACTIVE_INDEX=0
+        fi
+
+        if [[ "${#SAVED_USERNAMES[@]}" -gt 0 ]]; then
+            if [[ "$SAVED_ACTIVE_INDEX" -lt 0 ]]; then
+                SAVED_ACTIVE_INDEX=0
+            fi
+            SAVED_USERNAME="${SAVED_USERNAMES[$SAVED_ACTIVE_INDEX]}"
+            SAVED_PASSWORD="${SAVED_PASSWORDS[$SAVED_ACTIVE_INDEX]}"
             return 0
         fi
     fi
@@ -52,20 +84,57 @@ save_credentials() {
     local config_dir
     config_dir="$(dirname "$cred_file")"
 
+    load_saved_credentials 2>/dev/null || true
+
     mkdir -p "$config_dir" 2>/dev/null || true
     chmod 700 "$config_dir" 2>/dev/null || true
 
-    if cat <<EOF > "$cred_file" 2>/dev/null
-USERNAME=$username
-PASSWORD=$password
-EOF
-    then
-        chmod 600 "$cred_file" 2>/dev/null || true
-        echo -e "${GREEN}${LANG_CREDENTIALS_SAVED:-Steam credentials saved successfully.}${RESET}"
-    else
-        echo -e "${YELLOW}Warning: Could not save credentials file.${RESET}"
+    local -a new_users=()
+    local -a new_passes=()
+    local found=0
+
+    for (( i=0; i<${#SAVED_USERNAMES[@]}; i++ )); do
+        if [[ "${SAVED_USERNAMES[$i]}" == "$username" ]]; then
+            new_users+=("$username")
+            new_passes+=("$password")
+            found=1
+        else
+            new_users+=("${SAVED_USERNAMES[$i]}")
+            new_passes+=("${SAVED_PASSWORDS[$i]}")
+        fi
+    done
+
+    if [[ $found -eq 0 ]]; then
+        new_users+=("$username")
+        new_passes+=("$password")
     fi
-    sleep 1
+
+    local target_active_idx=$(( ${#new_users[@]} - 1 ))
+
+    {
+        for (( i=0; i<${#new_users[@]}; i++ )); do
+            local is_act=0
+            [[ $i -eq $target_active_idx ]] && is_act=1
+            echo "ACCOUNT=${new_users[$i]}:${new_passes[$i]}:${is_act}"
+        done
+        echo "USERNAME=$username"
+        echo "PASSWORD=$password"
+    } > "$cred_file" 2>/dev/null
+
+    chmod 600 "$cred_file" 2>/dev/null || true
+    SAVED_USERNAME="$username"
+    SAVED_PASSWORD="$password"
+}
+
+set_active_account() {
+    local target_idx="$1"
+    load_saved_credentials || return 1
+
+    if [[ "$target_idx" -ge 0 && "$target_idx" -lt "${#SAVED_USERNAMES[@]}" ]]; then
+        save_credentials "${SAVED_USERNAMES[$target_idx]}" "${SAVED_PASSWORDS[$target_idx]}"
+        return 0
+    fi
+    return 1
 }
 
 delete_saved_credentials() {
@@ -74,7 +143,11 @@ delete_saved_credentials() {
 
     if [[ -f "$cred_file" ]]; then
         rm -f "$cred_file"
-        echo -e "${YELLOW}${LANG_CREDENTIALS_DELETED:-Saved Steam credentials deleted.}${RESET}"
-        sleep 1
+        SAVED_USERNAMES=()
+        SAVED_PASSWORDS=()
+        SAVED_USERNAME=""
+        SAVED_PASSWORD=""
+        SAVED_ACTIVE_INDEX=-1
     fi
 }
+

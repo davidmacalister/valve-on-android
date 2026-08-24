@@ -78,56 +78,30 @@ while true; do
     show_main_menu
 
     case "$MAIN_MENU_CHOICE" in
-        1)
-            if ! show_all_games_menu; then
+        0)
+            if ! show_installation_game_selection_menu; then
                 continue
             fi
             if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
-                echo -e "${RED}[!] ${LANG_NO_COMMANDS}${RESET}"
-                sleep 2
                 continue
             fi
-            if ! show_language_pack_menu; then
-                continue
-            fi
-            prompt_steam_credentials
+            show_steam_login_menu
             execute_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD"
+            ;;
+        1)
+            show_game_management_menu
             ;;
         2)
-            if ! show_manual_game_selection_menu; then
-                continue
-            fi
-            if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
-                echo -e "${RED}[!] ${LANG_NO_COMMANDS}${RESET}"
-                sleep 2
-                continue
-            fi
-            if ! show_language_pack_menu; then
-                continue
-            fi
-            prompt_steam_credentials
-            execute_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD"
+            show_manual_menu
             ;;
         3)
-            if ! show_verify_integrity_menu; then
-                continue
-            fi
-            if [[ "${#VERIFY_INDICES[@]}" -eq 0 ]]; then
-                continue
-            fi
-            prompt_steam_credentials
-            execute_verification_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD" "${VERIFY_INDICES[@]}"
+            show_options_menu
             ;;
         4)
-            echo -e "${RED}${LANG_EXITING}${RESET}"
+            clear
+            echo -e "${RED}${LANG_EXITING:-Saindo...}${RESET}"
             exit 0
             ;;
-        *)
-            echo -e "${RED}[!] ${LANG_INVALID_OPTION}${RESET}"
-            sleep 2
-            continue
-            ;;
     esac
-
-    read -p "${LANG_PRESS_ENTER}" _
 done
+
