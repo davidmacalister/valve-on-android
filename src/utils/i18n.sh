@@ -9,7 +9,7 @@ load_language_script() {
     local local_file="${SCRIPT_DIR}/locales/${lang_filename}"
     local remote_url="https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/locales/${lang_filename}"
 
-    if [[ -s "$local_file" ]]; then
+    if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_file" ]]; then
         source "$local_file"
         setup_language_display_names
         return 0
@@ -17,6 +17,10 @@ load_language_script() {
 
     mkdir -p "${SCRIPT_DIR}/locales"
     if curl -sSL "$remote_url" -o "$local_file" && [[ -s "$local_file" ]]; then
+        source "$local_file"
+        setup_language_display_names
+        return 0
+    elif [[ -s "$local_file" ]]; then
         source "$local_file"
         setup_language_display_names
         return 0

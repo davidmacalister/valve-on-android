@@ -30,14 +30,16 @@ load_module() {
     local local_path="${SCRIPT_DIR}/${module_rel_path}"
     local remote_url="https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/${module_rel_path}"
 
-    if [[ -s "$local_path" ]]; then
+    if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_path" ]]; then
         source "$local_path"
         return 0
     fi
 
     mkdir -p "$(dirname "$local_path")"
-    echo "Downloading module ${module_rel_path}..."
     if curl -sSL "$remote_url" -o "$local_path" && [[ -s "$local_path" ]]; then
+        source "$local_path"
+        return 0
+    elif [[ -s "$local_path" ]]; then
         source "$local_path"
         return 0
     else
