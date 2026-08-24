@@ -60,6 +60,13 @@ LANG_BY_SRBR_MPD="${BLUE}[${RESET}${GREEN}*${RESET}${BLUE}]${RESET} от ${GREEN
 # Steam Credentials
 LANG_ENTER_USERNAME="Введите ваш логин Steam:"
 LANG_ENTER_PASSWORD="Введите ваш пароль Steam:"
+LANG_SAVED_CREDENTIALS_FOUND="Найдены сохранённые данные Steam для пользователя:"
+LANG_USE_SAVED_CREDENTIALS="Использовать сохранённые данные"
+LANG_ENTER_DIFFERENT_CREDENTIALS="Ввести другие данные"
+LANG_DELETE_SAVED_CREDENTIALS="Удалить сохранённые данные"
+LANG_ASK_SAVE_CREDENTIALS="Хотите сохранить данные Steam для будущих сеансов?"
+LANG_CREDENTIALS_SAVED="Данные Steam успешно сохранены."
+LANG_CREDENTIALS_DELETED="Сохранённые данные Steam удалены."
 
 # Generic Controls and Status Messages
 LANG_YES="Да"

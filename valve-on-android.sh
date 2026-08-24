@@ -51,6 +51,7 @@ load_module() {
 load_module "src/utils/terminal.sh"
 load_module "src/utils/i18n.sh"
 load_module "src/utils/extract.sh"
+load_module "src/utils/credentials.sh"
 load_module "src/config/games.sh"
 load_module "src/config/community.sh"
 load_module "src/core/depot.sh"

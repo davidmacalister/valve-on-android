@@ -363,7 +363,56 @@ show_language_pack_menu() {
 }
 
 prompt_steam_credentials() {
+    STEAM_USERNAME=""
+    STEAM_PASSWORD=""
+
+    if has_saved_credentials && load_saved_credentials; then
+        while true; do
+            local choice
+            clear
+            echo
+            echo -e "${BOLD}${LANG_SAVED_CREDENTIALS_FOUND}${RESET} ${GREEN}${SAVED_USERNAME}${RESET}"
+            echo
+            echo "1) ${LANG_USE_SAVED_CREDENTIALS} (${SAVED_USERNAME})"
+            echo "2) ${LANG_ENTER_DIFFERENT_CREDENTIALS}"
+            echo "3) ${LANG_DELETE_SAVED_CREDENTIALS}"
+            echo "============================"
+            read -p "${LANG_PROMPT_CHOOSE} (1-3): " choice
+
+            case "$choice" in
+                1)
+                    STEAM_USERNAME="$SAVED_USERNAME"
+                    STEAM_PASSWORD="$SAVED_PASSWORD"
+                    return 0
+                    ;;
+                2)
+                    break
+                    ;;
+                3)
+                    delete_saved_credentials
+                    break
+                    ;;
+                *)
+                    echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
+                    sleep 2
+                    ;;
+            esac
+        done
+    fi
+
     clear
     read -p "${LANG_ENTER_USERNAME} " STEAM_USERNAME
     STEAM_PASSWORD="$(read_masked_password "${LANG_ENTER_PASSWORD}")"
+
+    local save_choice
+    echo
+    echo -e "${BOLD}${LANG_ASK_SAVE_CREDENTIALS}${RESET}"
+    echo "1) ${LANG_YES}"
+    echo "2) ${LANG_NO}"
+    echo "============================"
+    read -p "${LANG_PROMPT_CHOOSE} (1-2): " save_choice
+
+    if [[ "$save_choice" == "1" ]]; then
+        save_credentials "$STEAM_USERNAME" "$STEAM_PASSWORD"
+    fi
 }
