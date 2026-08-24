@@ -18,12 +18,12 @@ setup_community_translations() {
     # Half-Life 2 (App 220, Depot 221)
     COMMUNITY_URLS["220:221,pt-BR"]="https://github.com/davidmacalister/Community-Translations-for-Source/releases/download/continuous/Half-Life-2-Brazilian.zip"
     COMMUNITY_OUTFILES["220:221,pt-BR"]="HL2_Brazilian.zip"
-    COMMUNITY_OUTDIRS["220:221,pt-BR"]="/storage/emulated/0/srceng/hl2/"
+    COMMUNITY_OUTDIRS["220:221,pt-BR"]="/storage/emulated/0/srceng/hl2"
 
     # HL2 Episode One (App 220, Depot 389)
     COMMUNITY_URLS["220:389,pt-BR"]="https://github.com/davidmacalister/Community-Translations-for-Source/releases/download/continuous/Half-Life-2-Episode-One-Brazilian.zip"
     COMMUNITY_OUTFILES["220:389,pt-BR"]="HL2_EP1_Brazilian.zip"
-    COMMUNITY_OUTDIRS["220:389,pt-BR"]="/storage/emulated/0/srceng/episodic/"
+    COMMUNITY_OUTDIRS["220:389,pt-BR"]="/storage/emulated/0/srceng/episodic"
 
     # Half-Life (App 70, Depot 1)
     COMMUNITY_URLS["70:1,pt-BR"]="https://github.com/davidmacalister/Community-Translations-for-GoldSrc/releases/download/continuous/Half-Life-Xash-Brazilian.zip"

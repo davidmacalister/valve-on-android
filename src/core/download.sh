@@ -126,7 +126,13 @@ run_community_language_download() {
             echo -e "  Target Path: ${outdir}/${outfile}"
             return 0
         fi
-        download_and_extract_community_pack "$url" "$outdir" "$outfile" "$display_label"
+        echo -e "\n${BOLD}${CYAN}[+] ${LANG_INSTALLING_PACK:-Installing language pack:} ${display_label}${RESET}"
+        if download_and_extract_community_pack "$url" "$outdir" "$outfile" "$display_label"; then
+            echo -e "${BOLD}${GREEN}[✓] ${LANG_PACK_SUCCESS:-Language pack installed successfully.}${RESET}"
+        else
+            echo -e "${RED}[✗] ${LANG_FAILED_DOWNLOAD:-Failed to download language pack.}${RESET}"
+            return 1
+        fi
     else
         echo -e "${YELLOW}${LANG_NO_COMMUNITY_PACK} ${game_name} (${display_label})${RESET}"
     fi
@@ -148,7 +154,9 @@ execute_downloads() {
         target_dir_name="$(get_dir_from_args "$game_args")"
 
         clear
+        echo -e "${BOLD}${GREEN}========================================${RESET}"
         echo -e "${BOLD}${GREEN}${LANG_DOWNLOADING}${RESET} ${game_name}"
+        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
 
         # Convert space-separated string arguments into array safely (no eval)
         local -a arg_tokens=( $game_args )
@@ -161,19 +169,29 @@ execute_downloads() {
             "${arg_tokens[@]}"
         )
 
+        local download_status=0
         if [[ "${DRY_RUN:-0}" == "1" ]]; then
             echo -e "${YELLOW}[DRY RUN] Simulated Base Game Command:${RESET}"
             echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
         else
-            "${full_cmd[@]}" || {
-                echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
-                return 1
-            }
+            "${full_cmd[@]}" || download_status=1
+        fi
+
+        if [[ $download_status -ne 0 ]]; then
+            echo -e "\n${BOLD}${RED}========================================${RESET}"
+            echo -e "${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}"
+            echo -e "${BOLD}${RED}========================================${RESET}\n"
+            return 1
+        else
+            echo -e "${BOLD}${GREEN}[✓] ${LANG_BASE_GAME_SUCCESS:-Base game files downloaded successfully.}${RESET}"
         fi
 
         # Handle official language pack downloads if selected
         if [[ "$TRANSLATION_MODE" == "official" && -n "$SELECTED_OFFICIAL_LANG" ]]; then
-            run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG" || return 1
+            if ! run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG"; then
+                echo -e "\n${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}\n"
+                return 1
+            fi
         fi
 
         # Handle community language pack downloads if selected
@@ -183,6 +201,10 @@ execute_downloads() {
 
         # Record successful installation in history log
         record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$TRANSLATION_MODE" "$SELECTED_OFFICIAL_LANG" "$SELECTED_COMMUNITY_LANG"
+
+        echo -e "\n${BOLD}${GREEN}========================================${RESET}"
+        echo -e "${BOLD}${GREEN}[✓] ${game_name} ${LANG_GAME_INSTALL_SUCCESS:-was successfully installed!}${RESET}"
+        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
     done
 }
 
@@ -209,7 +231,9 @@ execute_verification_downloads() {
         target_dir_name="$(get_dir_from_args "$game_args")"
 
         clear
+        echo -e "${BOLD}${GREEN}========================================${RESET}"
         echo -e "${BOLD}${GREEN}${LANG_VERIFYING:-Verifying integrity and updating:}${RESET} ${game_name}"
+        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
 
         local -a arg_tokens=( $game_args )
         local -a full_cmd=(
@@ -221,14 +245,21 @@ execute_verification_downloads() {
             "${arg_tokens[@]}"
         )
 
+        local download_status=0
         if [[ "${DRY_RUN:-0}" == "1" ]]; then
             echo -e "${YELLOW}[DRY RUN] Simulated Verification Command:${RESET}"
             echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
         else
-            "${full_cmd[@]}" || {
-                echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
-                return 1
-            }
+            "${full_cmd[@]}" || download_status=1
+        fi
+
+        if [[ $download_status -ne 0 ]]; then
+            echo -e "\n${BOLD}${RED}========================================${RESET}"
+            echo -e "${BOLD}${RED}[✗] ${LANG_GAME_INSTALL_FAILED:-Failed to install:} ${game_name}${RESET}"
+            echo -e "${BOLD}${RED}========================================${RESET}\n"
+            return 1
+        else
+            echo -e "${BOLD}${GREEN}[✓] ${LANG_BASE_GAME_SUCCESS:-Base game files downloaded successfully.}${RESET}"
         fi
 
         if [[ "$trans_mode" == "official" && -n "$off_lang" ]]; then
@@ -240,5 +271,9 @@ execute_verification_downloads() {
         fi
 
         record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$trans_mode" "$off_lang" "$comm_lang"
+
+        echo -e "\n${BOLD}${GREEN}========================================${RESET}"
+        echo -e "${BOLD}${GREEN}[✓] ${game_name} ${LANG_GAME_INSTALL_SUCCESS:-was successfully installed!}${RESET}"
+        echo -e "${BOLD}${GREEN}========================================${RESET}\n"
     done
 }
