@@ -23,6 +23,9 @@ run_interactive_menu() {
 
     local footer_text="${1:-${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}}"
 
+    local active_idx=0
+    local item_count=${#raw_items[@]}
+
     local init_radio_idx="${MENU_INITIAL_CHECKED_INDEX:-}"
     local -a init_cb_indices=()
     if [[ -n "${MENU_INITIAL_CHECKED_INDICES:-}" ]]; then
