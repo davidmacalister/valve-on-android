@@ -49,8 +49,10 @@ run_interactive_menu() {
     if [[ "$menu_type" == "radio" ]]; then
         if [[ -n "$init_radio_idx" && "$init_radio_idx" -ge 0 && "$init_radio_idx" -lt "$item_count" ]]; then
             checked[$init_radio_idx]=1
+            active_idx=$init_radio_idx
         else
             checked[0]=1
+            active_idx=0
         fi
     elif [[ "$menu_type" == "checkbox" ]]; then
         # Checkbox menus default to ALL UNCHECKED (0) unless specified
@@ -779,16 +781,39 @@ show_uninstall_game_selection_menu() {
         "---FOOTER---" \
         "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
 
-        for idx in "${MENU_CHECKED_INDICES[@]}"; do
-            local game_args="${INSTALLED_GAMES_ARGS[$idx]:-}"
-            local game_dir="$(get_dir_from_args "$game_args")"
-            if [[ -n "$game_dir" ]]; then
-                echo -e "${YELLOW}Removendo diretório: ${SET_DIR}${game_dir}${RESET}"
-                rm -rf "${SET_DIR}${game_dir}" 2>/dev/null || true
-            fi
-        done
-        echo -e "${GREEN}Jogos selecionados foram removidos.${RESET}"
-        sleep 2
+        if [[ "${#MENU_CHECKED_INDICES[@]}" -gt 0 ]]; then
+            for idx in "${MENU_CHECKED_INDICES[@]}"; do
+                local game_args="${INSTALLED_GAMES_ARGS[$idx]:-}"
+                local appid="${INSTALLED_GAMES_APPIDS[$idx]:-}"
+                local depot="${INSTALLED_GAMES_DEPOTS[$idx]:-}"
+                local game_name="${INSTALLED_GAMES_NAMES[$idx]:-}"
+                [[ -z "$game_name" ]] && game_name="$(get_game_name "$appid" "$depot")"
+                local target_dir_name="$(get_dir_from_args "$game_args")"
+
+                clear
+                echo
+                echo -e "${BOLD}${LANG_MANAGEMENT_TITLE:-Gerenciamento de jogos}${RESET}"
+                echo
+                echo -e "$(format_game_name_colored "$game_name")"
+                echo
+
+                perform_removal() {
+                    if [[ -n "$target_dir_name" ]]; then
+                        rm -rf "${SET_DIR}${target_dir_name}" 2>/dev/null || true
+                    fi
+                    sleep 0.5
+                }
+
+                run_step_with_spinner \
+                    "${LANG_STATUS_UNINSTALLING:-Desinstalando}" \
+                    "${LANG_STATUS_UNINSTALL_SUCCESS:-Desinstalando com sucesso.}" \
+                    perform_removal
+            done
+
+            echo
+            echo -n "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte → para voltar ao menu principal} "
+            read_key >/dev/null
+        fi
     fi
 }
 
