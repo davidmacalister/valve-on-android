@@ -103,12 +103,13 @@ run_step_with_spinner() {
 
     if [[ "${DRY_RUN:-0}" == "1" ]]; then
         for (( i=0; i<${#frames[@]}; i++ )); do
-            echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
+            echo -ne "\033[1G\033[K\033[?25l${BLUE}${frames[frame_idx]}${RESET} ${step_label}"
             frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
             sleep 0.08
         done
-        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}"
+        echo -ne "\033[1G\033[K${GREEN}✓ ${success_label}${RESET}"
         sleep 0.8
+        echo -ne "\033[?25h"
         return 0
     fi
 
@@ -120,7 +121,7 @@ run_step_with_spinner() {
     local cmd_pid=$!
 
     while kill -0 "$cmd_pid" 2>/dev/null; do
-        echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
+        echo -ne "\033[1G\033[K\033[?25l${BLUE}${frames[frame_idx]}${RESET} ${step_label}"
         frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
         sleep 0.08
     done
@@ -129,10 +130,10 @@ run_step_with_spinner() {
     local status=$?
 
     if [[ $status -eq 0 ]]; then
-        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}"
+        echo -ne "\033[1G\033[K${GREEN}✓ ${success_label}${RESET}"
         sleep 0.8
     else
-        echo -ne "\r\033[K${RED}✗ Ocorreu um erro.${RESET}\n"
+        echo -ne "\033[1G\033[K${RED}✗ Ocorreu um erro.${RESET}\n"
         if [[ -s "$log_file" ]]; then
             tail -n 4 "$log_file" | while read -r line; do
                 echo -e "  ${RED}${line}${RESET}"
@@ -141,6 +142,7 @@ run_step_with_spinner() {
         sleep 1
     fi
 
+    echo -ne "\033[?25h"
     return $status
 }
 
