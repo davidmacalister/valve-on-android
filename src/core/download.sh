@@ -49,6 +49,8 @@ run_official_language_download() {
     local password="$4"
     local selected_lang="$5"
 
+    [[ -z "$selected_lang" || "$selected_lang" == "english" ]] && return 0
+
     local depot_id=""
     local target_dir=""
     case "$appid" in
@@ -73,29 +75,26 @@ run_official_language_download() {
         20)  depot_id="${TFC_LANG_DEPOTS[$selected_lang]:-}"; target_dir="xash" ;;
     esac
 
-    if [[ -n "$depot_id" ]]; then
-        echo -e "${BOLD}${GREEN}${LANG_DOWNLOADING_LANG_PACK}${RESET} ${LANG_DISPLAY_NAMES[$selected_lang]:-$selected_lang}"
-        local -a lang_cmd=(
-            depotdownloader
-            -username "$username"
-            -password "$password"
-            -remember-password
-            -validate
-            -app "$appid"
-            -depot "$depot_id"
-            -dir "$target_dir"
-        )
-
-        if [[ "${DRY_RUN:-0}" == "1" ]]; then
-            echo -e "${YELLOW}[DRY RUN] Simulated command:${RESET} $(mask_password_in_cmd "${lang_cmd[@]}")"
-            return 0
-        fi
-
-        "${lang_cmd[@]}" || {
-            echo -e "${RED}${LANG_COMMANDS_ABOVE}${RESET}"
-            return 1
-        }
+    if [[ -z "$depot_id" ]]; then
+        return 0
     fi
+
+    local -a lang_cmd=(
+        depotdownloader
+        -username "$username"
+        -password "$password"
+        -remember-password
+        -validate
+        -app "$appid"
+        -depot "$depot_id"
+        -dir "$target_dir"
+    )
+
+    if [[ "${DRY_RUN:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    "${lang_cmd[@]}" || return 1
 }
 
 run_community_language_download() {
@@ -188,33 +187,31 @@ execute_downloads() {
         fi
 
         # Handle official language pack downloads if selected
-        if [[ "$TRANSLATION_MODE" == "official" && -n "$SELECTED_OFFICIAL_LANG" ]]; then
-            if ! run_step_with_spinner \
+        if [[ "${TRANSLATION_MODE:-}" == "official" && -n "${SELECTED_OFFICIAL_LANG:-}" && "${SELECTED_OFFICIAL_LANG:-}" != "english" ]]; then
+            run_step_with_spinner \
                 "${LANG_STATUS_DOWNLOADING_OFFICIAL_LANG:-Baixando pacote de idioma oficial}" \
                 "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
-                run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG"; then
-                return 1
-            fi
+                run_official_language_download "$appid" "$depot" "$username" "$password" "$SELECTED_OFFICIAL_LANG" || true
         fi
 
         # Handle community language pack downloads if selected
-        if [[ "$TRANSLATION_MODE" == "community" && -n "$SELECTED_COMMUNITY_LANG" ]]; then
-            if ! run_step_with_spinner \
+        if [[ "${TRANSLATION_MODE:-}" == "community" && -n "${SELECTED_COMMUNITY_LANG:-}" ]]; then
+            if run_step_with_spinner \
                 "${LANG_STATUS_DOWNLOADING_COMMUNITY_LANG:-Baixando pacote de idioma comunitário}" \
                 "${LANG_STATUS_DOWNLOAD_SUCCESS:-Baixando com sucesso.}" \
                 run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG" "$target_dir_name"; then
-                return 1
-            fi
 
-            run_step_with_spinner \
-                "${LANG_STATUS_INSTALLING_PACK:-Instalando pacote}" \
-                "${LANG_STATUS_INSTALL_SUCCESS:-Instalado com sucesso.}" \
-                sleep 0.5
+                run_step_with_spinner \
+                    "${LANG_STATUS_INSTALLING_PACK:-Instalando pacote}" \
+                    "${LANG_STATUS_INSTALL_SUCCESS:-Instalado com sucesso.}" \
+                    sleep 0.5
+            fi
         fi
 
         # Record successful installation in history log
-        record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$TRANSLATION_MODE" "$SELECTED_OFFICIAL_LANG" "$SELECTED_COMMUNITY_LANG"
+        record_game_installation "$game_args" "$appid" "$depot" "$game_name" "${TRANSLATION_MODE:-}" "${SELECTED_OFFICIAL_LANG:-}" "${SELECTED_COMMUNITY_LANG:-}"
     done
+
 
     echo
     read -p "${LANG_PRESS_ENTER_MAIN_MENU:-Aperte ENTER para voltar ao menu principal}" _

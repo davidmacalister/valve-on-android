@@ -38,6 +38,9 @@ run_interactive_menu() {
         checked[0]=1
     fi
 
+    # Hide cursor to prevent blinking cursor flickering on screen redraw
+    echo -ne "\033[?25l"
+
     while true; do
         clear
         echo
@@ -145,6 +148,7 @@ run_interactive_menu() {
                 fi
                 ;;
             ENTER)
+                echo -ne "\033[?25h"
                 if [[ "$menu_type" == "simple" ]]; then
                     return $active_idx
                 elif [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
@@ -176,6 +180,7 @@ run_interactive_menu() {
                 fi
                 ;;
             BACK)
+                echo -ne "\033[?25h"
                 return 1
                 ;;
         esac
