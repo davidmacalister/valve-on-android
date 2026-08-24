@@ -59,13 +59,13 @@ format_game_name_colored() {
     local name="$1"
     case "$name" in
         *"Day of Defeat"*)  echo -e "${GREEN}Day${RESET} of ${RED}Defeat:${RESET} Source" ;;
-        *"Counter-Strike"*) echo -e "${RESET}${name}" ;;
+        *"Counter-Strike"*) echo -e "${name}" ;;
         *"Blue Shift"*)     echo -e "${BLUE}${name}${RESET}" ;;
         *"Opposing Force"*) echo -e "${GREEN}${name}${RESET}" ;;
         *"Half-Life"*)      echo -e "${ORANGE}${name}${RESET}" ;;
         *"Team Fortress"*)  echo -e "${YELLOW}${name}${RESET}" ;;
         *"Portal"*)         echo -e "${CYAN}${name}${RESET}" ;;
-        *)                  echo -e "${RESET}${name}" ;;
+        *)                  echo -e "${name}" ;;
     esac
 }
 

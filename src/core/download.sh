@@ -152,13 +152,12 @@ execute_downloads() {
         depot="$(get_depot_id_from_args "$game_args")"
         game_name="$(get_game_name "$appid" "$depot")"
         target_dir_name="$(get_dir_from_args "$game_args")"
-        game_color="$(get_game_color "$game_name")"
 
         clear
         echo
         echo -e "${BOLD}${LANG_INSTALL_MENU_TITLE:-Menu de instalação}${RESET}"
         echo
-        echo -e "${game_color}${game_name}${RESET}"
+        echo -e "$(format_game_name_colored "$game_name")"
         echo
 
         # Convert space-separated string arguments into array safely
@@ -240,13 +239,12 @@ execute_verification_downloads() {
         [[ -z "$depot" ]] && depot="$(get_depot_id_from_args "$game_args")"
         [[ -z "$game_name" ]] && game_name="$(get_game_name "$appid" "$depot")"
         target_dir_name="$(get_dir_from_args "$game_args")"
-        game_color="$(get_game_color "$game_name")"
 
         clear
         echo
         echo -e "${BOLD}${LANG_MANAGEMENT_TITLE:-Gerenciamento de jogos}${RESET}"
         echo
-        echo -e "${game_color}${game_name}${RESET}"
+        echo -e "$(format_game_name_colored "$game_name")"
         echo
 
         local -a arg_tokens=( $game_args )
