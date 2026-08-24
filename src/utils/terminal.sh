@@ -81,9 +81,9 @@ read_key() {
     case "$key" in
         $'\x1b[A'|'w'|'W') echo "UP" ;;
         $'\x1b[B'|'s'|'S') echo "DOWN" ;;
+        $'\x1b[C'|'d'|'D'|''|$'\x0a'|$'\x0d') echo "ENTER" ;;
         ' ')               echo "SPACE" ;;
-        ''|$'\x0a'|$'\x0d') echo "ENTER" ;;
-        'b'|'B')           echo "BACK" ;;
+        'b'|'B'|$'\x1b[D'|'a'|'A') echo "BACK" ;;
         *)                 echo "$key" ;;
     esac
 }

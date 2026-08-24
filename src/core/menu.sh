@@ -21,7 +21,7 @@ run_interactive_menu() {
         shift
     done
 
-    local footer_text="${1:-${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}}"
+    local footer_text="${1:-${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}}"
 
     local active_idx=0
     local item_count=${#raw_items[@]}

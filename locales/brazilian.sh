@@ -107,7 +107,7 @@ LANG_TRY_AGAIN="Tente novamente."
 
 # New Interactive UI Text Keys
 LANG_SELECT_LANG_TITLE="Select language"
-LANG_NAVIGATE_FOOTER="↑/↓ navegar   Enter selecionar"
+LANG_NAVIGATE_FOOTER="↑/↓ navegar   → selecionar"
 LANG_MAIN_MENU_TITLE="Menu principal"
 LANG_INSTALL_MENU_TITLE="Menu de instalação"
 LANG_OPTIONS_MENU_TITLE="Opções"
