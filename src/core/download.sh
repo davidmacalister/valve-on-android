@@ -22,6 +22,16 @@ get_depot_id_from_args() {
     done
 }
 
+mask_password_in_cmd() {
+    local -a cmd_copy=( "$@" )
+    for (( i=0; i<${#cmd_copy[@]}; i++ )); do
+        if [[ "${cmd_copy[$i]}" == "-password" && $((i+1)) -lt ${#cmd_copy[@]} ]]; then
+            cmd_copy[$((i+1))]="********"
+        fi
+    done
+    echo "${cmd_copy[*]}"
+}
+
 run_official_language_download() {
     local appid="$1"
     local depot="$2"
@@ -67,7 +77,7 @@ run_official_language_download() {
         )
 
         if [[ "${DRY_RUN:-0}" == "1" ]]; then
-            echo -e "${YELLOW}[DRY RUN] Simulated command:${RESET} ${lang_cmd[*]}"
+            echo -e "${YELLOW}[DRY RUN] Simulated command:${RESET} $(mask_password_in_cmd "${lang_cmd[@]}")"
             return 0
         fi
 
@@ -135,7 +145,7 @@ execute_downloads() {
 
         if [[ "${DRY_RUN:-0}" == "1" ]]; then
             echo -e "${YELLOW}[DRY RUN] Simulated Base Game Command:${RESET}"
-            echo -e "  ${full_cmd[*]}"
+            echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
         else
             "${full_cmd[@]}" || {
                 echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
