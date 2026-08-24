@@ -94,6 +94,7 @@ run_step_with_spinner() {
     local success_label="$2"
     shift 2
 
+    # Exact requested Braille spinner clockwise sequence: ⠋ → ⠙ → ⠹ → ⠸ → ⠼ → ⠴ → ⠦ → ⠧ → ⠇ → ⠏
     local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
     local frame_idx=0
 
@@ -101,10 +102,10 @@ run_step_with_spinner() {
     echo -ne "\033[?25l"
 
     if [[ "${DRY_RUN:-0}" == "1" ]]; then
-        for (( i=0; i<6; i++ )); do
+        for (( i=0; i<${#frames[@]}; i++ )); do
             echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
             frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
-            sleep 0.1
+            sleep 0.08
         done
         echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}"
         sleep 0.8
@@ -121,7 +122,7 @@ run_step_with_spinner() {
     while kill -0 "$cmd_pid" 2>/dev/null; do
         echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
         frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
-        sleep 0.1
+        sleep 0.08
     done
 
     wait "$cmd_pid"
