@@ -23,8 +23,15 @@ run_interactive_menu() {
 
     local footer_text="${1:-${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}}"
 
-    local active_idx=0
-    local item_count=${#raw_items[@]}
+    local init_radio_idx="${MENU_INITIAL_CHECKED_INDEX:-}"
+    local -a init_cb_indices=()
+    if [[ -n "${MENU_INITIAL_CHECKED_INDICES:-}" ]]; then
+        init_cb_indices=("${MENU_INITIAL_CHECKED_INDICES[@]}")
+    fi
+
+    # Reset initial checked globals immediately so they don't leak
+    MENU_INITIAL_CHECKED_INDEX=""
+    MENU_INITIAL_CHECKED_INDICES=()
 
     # For radio or checkbox mode, items array contains labels.
     # We maintain an array of checked states (0 or 1).
@@ -34,16 +41,15 @@ run_interactive_menu() {
     done
 
     if [[ "$menu_type" == "radio" ]]; then
-        local init_idx="${MENU_INITIAL_CHECKED_INDEX:-0}"
-        if [[ "$init_idx" -ge 0 && "$init_idx" -lt "$item_count" ]]; then
-            checked[$init_idx]=1
+        if [[ -n "$init_radio_idx" && "$init_radio_idx" -ge 0 && "$init_radio_idx" -lt "$item_count" ]]; then
+            checked[$init_radio_idx]=1
         else
             checked[0]=1
         fi
     elif [[ "$menu_type" == "checkbox" ]]; then
         # Checkbox menus default to ALL UNCHECKED (0) unless specified
-        if [[ -n "${MENU_INITIAL_CHECKED_INDICES:-}" ]]; then
-            for c_idx in "${MENU_INITIAL_CHECKED_INDICES[@]}"; do
+        if [[ "${#init_cb_indices[@]}" -gt 0 ]]; then
+            for c_idx in "${init_cb_indices[@]}"; do
                 if [[ "$c_idx" -ge 0 && "$c_idx" -lt "$item_count" ]]; then
                     checked[$c_idx]=1
                 fi
@@ -64,7 +70,9 @@ run_interactive_menu() {
         echo -e "\033[K"
 
         if [[ -n "$subtitle" ]]; then
-            echo -e "${subtitle}\033[K"
+            while IFS= read -r sub_line; do
+                echo -e "${sub_line}\033[K"
+            done <<< "$subtitle"
             echo -e "\033[K"
         fi
 
