@@ -58,7 +58,7 @@ This project aims to make it easier to download Valve games on Android legally.
 -----
 Copy and paste this code in Termux to use this script:
 ```
-curl -LO "https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/valve-on-android.sh" && chmod +x valve-on-android.sh && ./valve-on-android.sh
+curl -LO "https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/valve-on-android.sh" && chmod +x valve-on-android.sh && ./valve-on-android.sh
 ```
 
 <div align="center">

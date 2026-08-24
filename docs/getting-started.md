@@ -17,7 +17,7 @@ Playing classic Valve games (such as Half-Life, Half-Life 2, Counter-Strike, and
 Open Termux on your Android device and run the following command:
 
 ```bash
-curl -LO "https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/valve-on-android.sh" && chmod +x valve-on-android.sh && ./valve-on-android.sh
+curl -LO "https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/valve-on-android.sh" && chmod +x valve-on-android.sh && ./valve-on-android.sh
 ```
 
 Follow the interactive terminal prompts:

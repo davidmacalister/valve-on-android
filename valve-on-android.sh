@@ -28,7 +28,7 @@ done
 load_module() {
     local module_rel_path="$1"
     local local_path="${SCRIPT_DIR}/${module_rel_path}"
-    local remote_url="https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/${module_rel_path}"
+    local remote_url="https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/${module_rel_path}"
 
     if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_path" ]]; then
         source "$local_path"

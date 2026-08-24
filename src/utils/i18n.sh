@@ -7,7 +7,7 @@ declare -A LANG_DISPLAY_NAMES
 load_language_script() {
     local lang_filename="$1"
     local local_file="${SCRIPT_DIR}/locales/${lang_filename}"
-    local remote_url="https://raw.githubusercontent.com/kennedcandido/Valve-on-android/main/locales/${lang_filename}"
+    local remote_url="https://raw.githubusercontent.com/davidmacalister/Valve-on-android/main/locales/${lang_filename}"
 
     if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_file" ]]; then
         source "$local_file"
