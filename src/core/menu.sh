@@ -284,7 +284,8 @@ show_installation_game_selection_menu() {
     SELECTED_GAME_ARGS=()
     MENU_INITIAL_CHECKED_INDEX=-1
     MENU_INITIAL_CHECKED_INDICES=()
-    local -a games=(
+
+    local -a catalog_names=(
         "Half-Life"
         "Half-Life: Blue Shift"
         "Half-Life: Opposing Force"
@@ -297,16 +298,35 @@ show_installation_game_selection_menu() {
         "Day of Defeat: Source"
         "Team Fortress Classic"
         "Portal"
-        "${LANG_CONFIRM:-Confirmar}"
-        "${LANG_BACK:-Voltar}"
     )
+
+    local -a available_games=()
+    local -a available_catalog_indices=()
+
+    local i
+    for (( i=0; i<${#catalog_names[@]}; i++ )); do
+        if ! is_game_fully_installed_locally "$i"; then
+            available_games+=("${catalog_names[$i]}")
+            available_catalog_indices+=("$i")
+        fi
+    done
+
+    if [[ "${#available_games[@]}" -eq 0 ]]; then
+        clear
+        echo
+        echo -e "${GREEN}${LANG_ALL_GAMES_INSTALLED:-Todos os jogos já estão instalados!}${RESET}"
+        sleep 2
+        return 1
+    fi
+
+    available_games+=("${LANG_CONFIRM:-Confirmar}" "${LANG_BACK:-Voltar}")
 
     if ! run_interactive_menu \
         "${LANG_INSTALL_MENU_TITLE:-Menu de instalação}" \
         "${LANG_SELECT_DESIRED_GAMES:-Selecione os jogos que deseja}" \
         "" \
         "checkbox" \
-        "${games[@]}" \
+        "${available_games[@]}" \
         "---FOOTER---" \
         "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"; then
         return 1
@@ -316,9 +336,22 @@ show_installation_game_selection_menu() {
         return 1
     fi
 
+    local -a selected_catalog_indices=()
+    local sel_idx
+    for sel_idx in "${MENU_CHECKED_INDICES[@]}"; do
+        if [[ "$sel_idx" -lt "${#available_catalog_indices[@]}" ]]; then
+            selected_catalog_indices+=("${available_catalog_indices[$sel_idx]}")
+        fi
+    done
+
+    if [[ "${#selected_catalog_indices[@]}" -eq 0 ]]; then
+        return 1
+    fi
+
     local has_goldsrc=0
-    for idx in "${MENU_CHECKED_INDICES[@]}"; do
-        case "$idx" in
+    local cat_idx
+    for cat_idx in "${selected_catalog_indices[@]}"; do
+        case "$cat_idx" in
             0|1|2|7|10) has_goldsrc=1 ;; # HL, Blue Shift, Opposing Force, CS, TFC
             3) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 221 -dir srceng") ;; # HL2
             4) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 220 -depot 389 -dir srceng" "-branch steam_legacy -app 220 -depot 380 -dir srceng") ;; # Ep1
@@ -335,9 +368,9 @@ show_installation_game_selection_menu() {
             return 1
         fi
 
-        for idx in "${MENU_CHECKED_INDICES[@]}"; do
+        for cat_idx in "${selected_catalog_indices[@]}"; do
             if [[ "$GOLDSRC_SELECTED_VERSION" == "25th" ]]; then
-                case "$idx" in
+                case "$cat_idx" in
                     0) SELECTED_GAME_ARGS+=("-app 70 -depot 1 -dir xash") ;;
                     1) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash") ;;
                     2) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash") ;;
@@ -345,7 +378,7 @@ show_installation_game_selection_menu() {
                     10) SELECTED_GAME_ARGS+=("-app 20 -depot 21 -dir xash") ;;
                 esac
             else
-                case "$idx" in
+                case "$cat_idx" in
                     0) SELECTED_GAME_ARGS+=("-branch steam_legacy -app 70 -depot 1 -dir xash_old") ;;
                     1) SELECTED_GAME_ARGS+=("-app 130 -depot 130 -dir xash_old") ;;
                     2) SELECTED_GAME_ARGS+=("-app 50 -depot 51 -dir xash_old") ;;
