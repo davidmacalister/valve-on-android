@@ -539,7 +539,6 @@ show_options_menu() {
             "simple" \
             "${LANG_STEAM_ACCOUNTS:-Contas Steam}" \
             "${LANG_INTERFACE_LANG:-Idiomas}" \
-            "${LANG_DISPLAY_SETTINGS:-Exibir}" \
             "${LANG_BACK:-Voltar}" \
             "---FOOTER---" \
             "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   → selecionar}"
@@ -548,8 +547,7 @@ show_options_menu() {
         case "$opt_choice" in
             0) show_steam_accounts_menu ;;
             1) show_languages_menu ;;
-            2) show_display_options_menu ;;
-            3) return 0 ;;
+            2) return 0 ;;
         esac
     done
 }
@@ -728,31 +726,7 @@ show_games_language_menu() {
     fi
 }
 
-# Display Options Menu
-show_display_options_menu() {
-    local current_dry="${DRY_RUN:-0}"
-    local dry_label="Desativado"
-    [[ "$current_dry" == "1" ]] && dry_label="Ativado"
 
-    run_interactive_menu \
-        "${LANG_OPTIONS_MENU_TITLE:-Opções}" \
-        "Modo de Simulação (Dry-Run): $dry_label" \
-        "" \
-        "simple" \
-        "Alternar Modo Simulação (Dry-Run)" \
-        "${LANG_BACK:-Voltar}" \
-        "---FOOTER---" \
-        "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}"
-    local choice=$?
-
-    if [[ $choice -eq 0 ]]; then
-        if [[ "${DRY_RUN:-0}" == "1" ]]; then
-            export DRY_RUN="0"
-        else
-            export DRY_RUN="1"
-        fi
-    fi
-}
 
 # Game Management Menu
 show_game_management_menu() {

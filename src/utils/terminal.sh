@@ -139,11 +139,50 @@ run_step_with_spinner() {
                 echo -e "  ${RED}${line}${RESET}"
             done
         fi
-        sleep 1
+        save_error_log "$step_label" "$status" "$log_file" "$@"
+        sleep 2.5
     fi
 
     echo -ne "\033[?25h"
     return $status
+}
+
+# Function to write persistent timestamped error logs for failed operations
+save_error_log() {
+    local step_label="$1"
+    local exit_status="$2"
+    local temp_log_file="$3"
+    shift 3
+    local cmd_str="$*"
+
+    local log_dir="${HOME}/.config/valve-on-android/logs"
+    mkdir -p "$log_dir" 2>/dev/null || log_dir="${SCRIPT_DIR}/logs"
+    mkdir -p "$log_dir" 2>/dev/null || log_dir="/tmp"
+
+    local timestamp
+    timestamp="$(date '+%Y%m%d_%H%M%S')"
+    local error_log_path="${log_dir}/error_${timestamp}.log"
+
+    {
+        echo "=========================================="
+        echo "VALVE ON ANDROID - ERROR LOG"
+        echo "=========================================="
+        echo "Date: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Step: $step_label"
+        echo "Command: $cmd_str"
+        echo "Exit Status: $exit_status"
+        echo "------------------------------------------"
+        echo "OUTPUT & TRACEBACK:"
+        if [[ -s "$temp_log_file" ]]; then
+            cat "$temp_log_file"
+        else
+            echo "(No output captured)"
+        fi
+        echo "=========================================="
+    } > "$error_log_path" 2>/dev/null
+
+    echo
+    echo -e "  ${YELLOW}${LANG_ERROR_LOG_SAVED:-Log de erro salvo em:}${RESET} ${BOLD}${error_log_path}${RESET}"
 }
 
 
