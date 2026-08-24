@@ -101,13 +101,13 @@ run_step_with_spinner() {
     echo -ne "\033[?25l"
 
     if [[ "${DRY_RUN:-0}" == "1" ]]; then
-        for (( i=0; i<4; i++ )); do
+        for (( i=0; i<6; i++ )); do
             echo -ne "\r\033[K${BLUE}${frames[frame_idx]} ${step_label}${RESET}"
             frame_idx=$(( (frame_idx + 1) % ${#frames[@]} ))
-            sleep 0.15
+            sleep 0.1
         done
-        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}\n"
-        echo -ne "\033[?25h"
+        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}"
+        sleep 0.8
         return 0
     fi
 
@@ -128,7 +128,8 @@ run_step_with_spinner() {
     local status=$?
 
     if [[ $status -eq 0 ]]; then
-        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}\n"
+        echo -ne "\r\033[K${GREEN}✓ ${success_label}${RESET}"
+        sleep 0.8
     else
         echo -ne "\r\033[K${RED}✗ Ocorreu um erro.${RESET}\n"
         if [[ -s "$log_file" ]]; then
@@ -136,10 +137,10 @@ run_step_with_spinner() {
                 echo -e "  ${RED}${line}${RESET}"
             done
         fi
+        sleep 1
     fi
 
-    # Restore cursor
-    echo -ne "\033[?25h"
     return $status
 }
+
 

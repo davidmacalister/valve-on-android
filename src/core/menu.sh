@@ -38,23 +38,26 @@ run_interactive_menu() {
         checked[0]=1
     fi
 
+    # Clear screen ONCE at entry
+    clear
     # Hide cursor to prevent blinking cursor flickering on screen redraw
     echo -ne "\033[?25l"
 
     while true; do
-        clear
-        echo
-        echo -e "${BOLD}${title}${RESET}"
-        echo
+        # Repaint in-place from Home position with hidden cursor (0 flicker!)
+        echo -ne "\033[H\033[?25l"
+        echo -e "\033[K"
+        echo -e "${BOLD}${title}${RESET}\033[K"
+        echo -e "\033[K"
 
         if [[ -n "$subtitle" ]]; then
-            echo -e "${subtitle}"
-            echo
+            echo -e "${subtitle}\033[K"
+            echo -e "\033[K"
         fi
 
         if [[ -n "$note" ]]; then
-            echo -e "${ITALIC}${YELLOW}${note}${RESET}"
-            echo
+            echo -e "${ITALIC}${YELLOW}${note}${RESET}\033[K"
+            echo -e "\033[K"
         fi
 
         for (( i=0; i<item_count; i++ )); do
@@ -62,20 +65,31 @@ run_interactive_menu() {
             [[ $i -eq $active_idx ]] && prefix="❯ "
 
             local label="${raw_items[$i]}"
+            local prev_label=""
+            [[ $i -gt 0 ]] && prev_label="${raw_items[$((i-1))]}"
+
+            # Spacing logic: insert blank line before Confirmar, Exit/Sair, or standalone Voltar
+            if [[ "$label" == "${LANG_CONFIRM:-Confirmar}" ]]; then
+                echo -e "\033[K"
+            elif [[ "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
+                echo -e "\033[K"
+            elif [[ "$label" == "${LANG_BACK:-Voltar}" && "$prev_label" != "${LANG_CONFIRM:-Confirmar}" ]]; then
+                echo -e "\033[K"
+            fi
 
             if [[ "$menu_type" == "radio" || "$menu_type" == "checkbox" ]]; then
                 if [[ "$label" == "${LANG_CONFIRM:-Confirmar}" || "$label" == "${LANG_BACK:-Voltar}" || "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
                     if [[ "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
                         if [[ $i -eq $active_idx ]]; then
-                            echo -e "${prefix}${RED}${BOLD}${label}${RESET}"
+                            echo -e "${prefix}${RED}${BOLD}${label}${RESET}\033[K"
                         else
-                            echo -e "${prefix}${RED}${label}${RESET}"
+                            echo -e "${prefix}${RED}${label}${RESET}\033[K"
                         fi
                     else
                         if [[ $i -eq $active_idx ]]; then
-                            echo -e "${prefix}${BOLD}${label}${RESET}"
+                            echo -e "${prefix}${BOLD}${label}${RESET}\033[K"
                         else
-                            echo -e "${prefix}${label}${RESET}"
+                            echo -e "${prefix}${label}${RESET}\033[K"
                         fi
                     fi
                 else
@@ -86,37 +100,38 @@ run_interactive_menu() {
                     color="$(get_game_color "$label")"
 
                     if [[ $i -eq $active_idx ]]; then
-                        echo -e "${prefix}${BOLD}${symbol} ${color}${label}${RESET}"
+                        echo -e "${prefix}${BOLD}${symbol} ${color}${label}${RESET}\033[K"
                     else
-                        echo -e "${prefix}${symbol} ${color}${label}${RESET}"
+                        echo -e "${prefix}${symbol} ${color}${label}${RESET}\033[K"
                     fi
                 fi
             else
                 # Simple menu
                 if [[ "$label" == "Exit" || "$label" == "${LANG_EXIT:-Sair}" ]]; then
                     if [[ $i -eq $active_idx ]]; then
-                        echo -e "${prefix}${RED}${BOLD}${label}${RESET}"
+                        echo -e "${prefix}${RED}${BOLD}${label}${RESET}\033[K"
                     else
-                        echo -e "${prefix}${RED}${label}${RESET}"
+                        echo -e "${prefix}${RED}${label}${RESET}\033[K"
                     fi
                 elif [[ "$label" == "${LANG_BACK:-Voltar}" ]]; then
                     if [[ $i -eq $active_idx ]]; then
-                        echo -e "${prefix}${BOLD}${label}${RESET}"
+                        echo -e "${prefix}${BOLD}${label}${RESET}\033[K"
                     else
-                        echo -e "${prefix}${label}${RESET}"
+                        echo -e "${prefix}${label}${RESET}\033[K"
                     fi
                 else
                     if [[ $i -eq $active_idx ]]; then
-                        echo -e "${prefix}${BOLD}${label}${RESET}"
+                        echo -e "${prefix}${BOLD}${label}${RESET}\033[K"
                     else
-                        echo -e "${prefix}${label}${RESET}"
+                        echo -e "${prefix}${label}${RESET}\033[K"
                     fi
                 fi
             fi
         done
 
-        echo "=========================="
-        echo -e "${footer_text}"
+        echo -e "==========================\033[K"
+        echo -e "${footer_text}\033[K"
+        echo -ne "\033[J" # Clear trailing lines below menu footer
 
         local key
         key="$(read_key)"
@@ -349,20 +364,96 @@ show_steam_login_menu() {
         return 0
     fi
 
-    while true; do
-        clear
-        echo
-        echo -e "${BOLD}${LANG_INSTALL_MENU_TITLE:-Menu de instalação}${RESET}"
-        echo
-        echo -e "${LANG_ENTER_STEAM_ACCOUNT:-Entre na sua conta Steam}"
-        echo
-        read -p "${LANG_ENTER_USERNAME:-Digite seu usuário:} " STEAM_USERNAME
-        STEAM_PASSWORD="$(read_masked_password "${LANG_ENTER_PASSWORD:-Digite sua senha:}")"
+    local active_idx=0
+    local -a items=("${LANG_ENTER_USERNAME:-Digite seu usuário:}" "${LANG_ENTER_PASSWORD:-Digite sua senha:}" "${LANG_CONFIRM:-Confirmar}" "${LANG_BACK:-Voltar}")
 
-        if [[ -n "$STEAM_USERNAME" && -n "$STEAM_PASSWORD" ]]; then
-            save_credentials "$STEAM_USERNAME" "$STEAM_PASSWORD"
-            return 0
-        fi
+    clear
+    echo -ne "\033[?25l"
+
+    while true; do
+        echo -ne "\033[H\033[?25l"
+        echo -e "\033[K"
+        echo -e "${BOLD}${LANG_INSTALL_MENU_TITLE:-Menu de instalação}${RESET}\033[K"
+        echo -e "\033[K"
+        echo -e "${LANG_ENTER_STEAM_ACCOUNT:-Entre na sua conta Steam}\033[K"
+        echo -e "\033[K"
+
+        for (( i=0; i<${#items[@]}; i++ )); do
+            local prefix="  "
+            [[ $i -eq $active_idx ]] && prefix="❯ "
+            local label="${items[$i]}"
+
+            if [[ $i -eq 0 ]]; then
+                local u_val="${STEAM_USERNAME}"
+                echo -e "${prefix}${label} ${GREEN}${u_val}${RESET}\033[K"
+            elif [[ $i -eq 1 ]]; then
+                local p_val=""
+                if [[ -n "$STEAM_PASSWORD" ]]; then
+                    p_val="********"
+                fi
+                echo -e "${prefix}${label} ${GREEN}${p_val}${RESET}\033[K"
+            elif [[ $i -eq 2 ]]; then
+                echo -e "\033[K"
+                if [[ $i -eq $active_idx ]]; then
+                    echo -e "${prefix}${BOLD}${label}${RESET}\033[K"
+                else
+                    echo -e "${prefix}${label}${RESET}\033[K"
+                fi
+            elif [[ $i -eq 3 ]]; then
+                if [[ $i -eq $active_idx ]]; then
+                    echo -e "${prefix}${BOLD}${label}${RESET}\033[K"
+                else
+                    echo -e "${prefix}${label}${RESET}\033[K"
+                fi
+            fi
+        done
+
+        echo -e "==========================\033[K"
+        echo -e "${LANG_NAVIGATE_FOOTER:-↑/↓ navegar   Enter selecionar}\033[K"
+        echo -ne "\033[J"
+
+        local key
+        key="$(read_key)"
+
+        case "$key" in
+            UP)
+                active_idx=$(( (active_idx - 1 + ${#items[@]}) % ${#items[@]} ))
+                ;;
+            DOWN)
+                active_idx=$(( (active_idx + 1) % ${#items[@]} ))
+                ;;
+            ENTER)
+                case "$active_idx" in
+                    0)
+                        echo -ne "\033[?25h"
+                        echo
+                        read -p "${LANG_ENTER_USERNAME:-Digite seu usuário:} " STEAM_USERNAME
+                        echo -ne "\033[?25l"
+                        ;;
+                    1)
+                        echo -ne "\033[?25h"
+                        echo
+                        STEAM_PASSWORD="$(read_masked_password "${LANG_ENTER_PASSWORD:-Digite sua senha:}")"
+                        echo -ne "\033[?25l"
+                        ;;
+                    2)
+                        echo -ne "\033[?25h"
+                        if [[ -n "$STEAM_USERNAME" && -n "$STEAM_PASSWORD" ]]; then
+                            save_credentials "$STEAM_USERNAME" "$STEAM_PASSWORD"
+                            return 0
+                        fi
+                        ;;
+                    3)
+                        echo -ne "\033[?25h"
+                        return 1
+                        ;;
+                esac
+                ;;
+            BACK)
+                echo -ne "\033[?25h"
+                return 1
+                ;;
+        esac
     done
 }
 
