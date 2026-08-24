@@ -11,6 +11,13 @@ load_language_script() {
 
     export CURRENT_INTERFACE_LANG_SCRIPT="$lang_filename"
 
+    case "$lang_filename" in
+        "english.sh")   export SELECTED_OFFICIAL_LANG="english" ;;
+        "russian.sh")   export SELECTED_OFFICIAL_LANG="russian" ;;
+        "spanish.sh")   export SELECTED_OFFICIAL_LANG="spanish" ;;
+        "brazilian.sh") export SELECTED_OFFICIAL_LANG="portuguese" ;;
+    esac
+
     if [[ -d "${SCRIPT_DIR}/.git" && -s "$local_file" ]]; then
         source "$local_file"
         setup_language_display_names
