@@ -11,6 +11,12 @@ LANG_TRY_INSTALL_7ZIP="Распаковщик 7z не найден. Попытк
 LANG_TITLE="Какие игры вы хотите скачать?"
 LANG_MAIN_OPTION_ALL="Все игры"
 LANG_MAIN_OPTION_MANUAL="Выбрать вручную"
+LANG_MAIN_OPTION_VERIFY="Проверить целостность / Обновить установленные игры"
+LANG_NO_INSTALLED_GAMES="Установленные игры не найдены в истории."
+LANG_VERIFY_TITLE="Проверка целостности и обновление игр"
+LANG_VERIFY_ALL="Проверить и обновить ВСЕ установленные игры"
+LANG_VERIFY_MANUAL="Выбрать конкретные установленные игры"
+LANG_VERIFYING="Проверка целостности и обновление:"
 
 # All Games Menu
 LANG_ALL_SOURCE="Все Source игры"

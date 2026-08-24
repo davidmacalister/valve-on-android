@@ -34,9 +34,88 @@ show_main_menu() {
     echo
     echo "1) ${LANG_MAIN_OPTION_ALL}"
     echo "2) ${LANG_MAIN_OPTION_MANUAL}"
-    echo -e "${RED}3) ${LANG_EXIT}${RESET}"
+    echo "3) ${LANG_MAIN_OPTION_VERIFY}"
+    echo -e "${RED}4) ${LANG_EXIT}${RESET}"
     echo "============================"
-    read -p "${LANG_PROMPT_CHOOSE} (1-3): " MAIN_MENU_CHOICE
+    read -p "${LANG_PROMPT_CHOOSE} (1-4): " MAIN_MENU_CHOICE
+}
+
+show_verify_integrity_menu() {
+    load_installed_games_list
+    local count="${#INSTALLED_GAMES_ARGS[@]}"
+
+    if [[ "$count" -eq 0 ]]; then
+        clear
+        echo
+        echo -e "${YELLOW}${LANG_NO_INSTALLED_GAMES}${RESET}"
+        sleep 2.5
+        return 1
+    fi
+
+    VERIFY_INDICES=()
+
+    clear
+    echo
+    echo -e "${BOLD}${LANG_VERIFY_TITLE}${RESET}"
+    echo
+    echo "1) ${LANG_VERIFY_ALL}"
+    echo "2) ${LANG_VERIFY_MANUAL}"
+    echo
+    echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
+    echo "============================"
+    local verify_option
+    read -p "${LANG_PROMPT_CHOOSE} (1-2): " verify_option
+
+    if [[ "$verify_option" == "b" ]]; then
+        return 1
+    fi
+
+    case "$verify_option" in
+        1)
+            for (( i=0; i<count; i++ )); do
+                VERIFY_INDICES+=("$i")
+            done
+            return 0
+            ;;
+        2)
+            clear
+            echo
+            echo -e "${BOLD}${LANG_VERIFY_TITLE}${RESET}"
+            echo
+            local idx=1
+            for name in "${INSTALLED_GAMES_NAMES[@]}"; do
+                echo "${idx}) ${name}"
+                ((idx++))
+            done
+            echo
+            echo -e "${RED}b) ${LANG_OPTION_BACK}${RESET}"
+            echo "============================"
+            local selections
+            read -p "${LANG_PROMPT_CHOOSE_MORE} (1-$((count))): " selections
+
+            if [[ "$selections" == "b" ]]; then
+                return 1
+            fi
+
+            local -a choices
+            IFS=',' read -ra choices <<< "$selections"
+            for c in "${choices[@]}"; do
+                if [[ "$c" =~ ^[0-9]+$ ]] && (( c >= 1 && c <= count )); then
+                    VERIFY_INDICES+=("$((c-1))")
+                fi
+            done
+
+            if [[ "${#VERIFY_INDICES[@]}" -eq 0 ]]; then
+                return 1
+            fi
+            return 0
+            ;;
+        *)
+            echo -e "\n${RED}${LANG_INVALID_OPTION}${RESET} ${LANG_TRY_AGAIN}"
+            sleep 2
+            return 1
+            ;;
+    esac
 }
 
 show_all_games_menu() {

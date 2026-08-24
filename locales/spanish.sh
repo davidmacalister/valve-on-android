@@ -11,6 +11,12 @@ LANG_TRY_INSTALL_7ZIP="Extractor 7z no encontrado. Intentando instalar 7zip (no 
 LANG_TITLE="¿Qué juegos le gustaría descargar?"
 LANG_MAIN_OPTION_ALL="Todos los juegos"
 LANG_MAIN_OPTION_MANUAL="Seleccionar manualmente"
+LANG_MAIN_OPTION_VERIFY="Verificar integridad / Actualizar juegos instalados"
+LANG_NO_INSTALLED_GAMES="No se encontraron juegos instalados en el historial."
+LANG_VERIFY_TITLE="Verificación de Integridad y Actualización"
+LANG_VERIFY_ALL="Verificar y actualizar TODOS los juegos instalados"
+LANG_VERIFY_MANUAL="Seleccionar juegos instalados específicos"
+LANG_VERIFYING="Verificando integridad y actualizando:"
 
 # All Games Menu
 LANG_ALL_SOURCE="Todos los juegos Source"

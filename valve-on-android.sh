@@ -52,6 +52,7 @@ load_module "src/utils/terminal.sh"
 load_module "src/utils/i18n.sh"
 load_module "src/utils/extract.sh"
 load_module "src/utils/credentials.sh"
+load_module "src/utils/installation_log.sh"
 load_module "src/config/games.sh"
 load_module "src/config/community.sh"
 load_module "src/core/depot.sh"
@@ -69,6 +70,7 @@ ensure_depotdownloader_installed
 # ==========================================
 while true; do
     SELECTED_GAME_ARGS=()
+    VERIFY_INDICES=()
     MAIN_MENU_CHOICE=""
     STEAM_USERNAME=""
     STEAM_PASSWORD=""
@@ -80,13 +82,43 @@ while true; do
             if ! show_all_games_menu; then
                 continue
             fi
+            if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
+                echo -e "${RED}[!] ${LANG_NO_COMMANDS}${RESET}"
+                sleep 2
+                continue
+            fi
+            if ! show_language_pack_menu; then
+                continue
+            fi
+            prompt_steam_credentials
+            execute_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD"
             ;;
         2)
             if ! show_manual_game_selection_menu; then
                 continue
             fi
+            if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
+                echo -e "${RED}[!] ${LANG_NO_COMMANDS}${RESET}"
+                sleep 2
+                continue
+            fi
+            if ! show_language_pack_menu; then
+                continue
+            fi
+            prompt_steam_credentials
+            execute_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD"
             ;;
         3)
+            if ! show_verify_integrity_menu; then
+                continue
+            fi
+            if [[ "${#VERIFY_INDICES[@]}" -eq 0 ]]; then
+                continue
+            fi
+            prompt_steam_credentials
+            execute_verification_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD" "${VERIFY_INDICES[@]}"
+            ;;
+        4)
             echo -e "${RED}${LANG_EXITING}${RESET}"
             exit 0
             ;;
@@ -96,19 +128,6 @@ while true; do
             continue
             ;;
     esac
-
-    if [[ "${#SELECTED_GAME_ARGS[@]}" -eq 0 ]]; then
-        echo -e "${RED}[!] ${LANG_NO_COMMANDS}${RESET}"
-        sleep 2
-        continue
-    fi
-
-    if ! show_language_pack_menu; then
-        continue
-    fi
-
-    prompt_steam_credentials
-    execute_downloads "$STEAM_USERNAME" "$STEAM_PASSWORD"
 
     read -p "${LANG_PRESS_ENTER}" _
 done

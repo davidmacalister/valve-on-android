@@ -5,12 +5,15 @@
 get_credentials_file_path() {
     local primary="${HOME}/.config/valve-on-android/credentials.conf"
     local secondary="${HOME}/.valve_on_android_credentials"
+    local fallback="/tmp/valve_on_android_credentials"
     local primary_dir="$(dirname "$primary")"
 
-    if mkdir -p "$primary_dir" 2>/dev/null; then
+    if mkdir -p "$primary_dir" 2>/dev/null && touch "$primary" 2>/dev/null; then
         echo "$primary"
-    else
+    elif touch "$secondary" 2>/dev/null; then
         echo "$secondary"
+    else
+        echo "$fallback"
     fi
 }
 

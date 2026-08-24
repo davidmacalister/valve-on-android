@@ -180,5 +180,65 @@ execute_downloads() {
         if [[ "$TRANSLATION_MODE" == "community" && -n "$SELECTED_COMMUNITY_LANG" ]]; then
             run_community_language_download "$appid" "$depot" "$game_name" "$SELECTED_COMMUNITY_LANG" "$target_dir_name"
         fi
+
+        # Record successful installation in history log
+        record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$TRANSLATION_MODE" "$SELECTED_OFFICIAL_LANG" "$SELECTED_COMMUNITY_LANG"
+    done
+}
+
+execute_verification_downloads() {
+    local username="$1"
+    local password="$2"
+    local -a verify_indices=( "${@:3}" )
+
+    for idx in "${verify_indices[@]}"; do
+        local game_args="${INSTALLED_GAMES_ARGS[$idx]:-}"
+        [[ -z "$game_args" ]] && continue
+
+        local appid="${INSTALLED_GAMES_APPIDS[$idx]:-}"
+        local depot="${INSTALLED_GAMES_DEPOTS[$idx]:-}"
+        local game_name="${INSTALLED_GAMES_NAMES[$idx]:-}"
+        local trans_mode="${INSTALLED_GAMES_MODES[$idx]:-}"
+        local off_lang="${INSTALLED_GAMES_OFF_LANGS[$idx]:-}"
+        local comm_lang="${INSTALLED_GAMES_COMM_LANGS[$idx]:-}"
+        local target_dir_name
+
+        [[ -z "$appid" ]] && appid="$(get_app_id_from_args "$game_args")"
+        [[ -z "$depot" ]] && depot="$(get_depot_id_from_args "$game_args")"
+        [[ -z "$game_name" ]] && game_name="$(get_game_name "$appid" "$depot")"
+        target_dir_name="$(get_dir_from_args "$game_args")"
+
+        clear
+        echo -e "${BOLD}${GREEN}${LANG_VERIFYING:-Verifying integrity and updating:}${RESET} ${game_name}"
+
+        local -a arg_tokens=( $game_args )
+        local -a full_cmd=(
+            depotdownloader
+            -username "$username"
+            -password "$password"
+            -remember-password
+            -validate
+            "${arg_tokens[@]}"
+        )
+
+        if [[ "${DRY_RUN:-0}" == "1" ]]; then
+            echo -e "${YELLOW}[DRY RUN] Simulated Verification Command:${RESET}"
+            echo -e "  $(mask_password_in_cmd "${full_cmd[@]}")"
+        else
+            "${full_cmd[@]}" || {
+                echo -e "${RED}[!] ${LANG_COMMANDS_ABOVE}${RESET}"
+                return 1
+            }
+        fi
+
+        if [[ "$trans_mode" == "official" && -n "$off_lang" ]]; then
+            run_official_language_download "$appid" "$depot" "$username" "$password" "$off_lang" || return 1
+        fi
+
+        if [[ "$trans_mode" == "community" && -n "$comm_lang" ]]; then
+            run_community_language_download "$appid" "$depot" "$game_name" "$comm_lang" "$target_dir_name"
+        fi
+
+        record_game_installation "$game_args" "$appid" "$depot" "$game_name" "$trans_mode" "$off_lang" "$comm_lang"
     done
 }

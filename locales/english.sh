@@ -11,6 +11,12 @@ LANG_TRY_INSTALL_7ZIP="7z extractor not found. Attempting to install 7zip (non-i
 LANG_TITLE="Which games do you want to download?"
 LANG_MAIN_OPTION_ALL="All games"
 LANG_MAIN_OPTION_MANUAL="Select manually"
+LANG_MAIN_OPTION_VERIFY="Verify integrity / Update installed games"
+LANG_NO_INSTALLED_GAMES="No installed games found in history."
+LANG_VERIFY_TITLE="Installed Games Verification & Update"
+LANG_VERIFY_ALL="Verify & update ALL installed games"
+LANG_VERIFY_MANUAL="Select specific installed games to verify"
+LANG_VERIFYING="Verifying integrity and updating:"
 
 # All Games Menu
 LANG_ALL_SOURCE="All Source games"
