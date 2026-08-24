@@ -28,8 +28,10 @@ run_interactive_menu() {
 
     local init_radio_idx="${MENU_INITIAL_CHECKED_INDEX:-}"
     local -a init_cb_indices=()
-    if [[ -n "${MENU_INITIAL_CHECKED_INDICES:-}" ]]; then
-        init_cb_indices=("${MENU_INITIAL_CHECKED_INDICES[@]}")
+    if [[ ${MENU_INITIAL_CHECKED_INDICES+x} ]]; then
+        for c_item in "${MENU_INITIAL_CHECKED_INDICES[@]+"${MENU_INITIAL_CHECKED_INDICES[@]}"}"; do
+            init_cb_indices+=("$c_item")
+        done
     fi
 
     # Reset initial checked globals immediately so they don't leak
@@ -39,6 +41,7 @@ run_interactive_menu() {
     # For radio or checkbox mode, items array contains labels.
     # We maintain an array of checked states (0 or 1).
     local -a checked=()
+    local i
     for (( i=0; i<item_count; i++ )); do
         checked+=(0)
     done
@@ -51,7 +54,8 @@ run_interactive_menu() {
         fi
     elif [[ "$menu_type" == "checkbox" ]]; then
         # Checkbox menus default to ALL UNCHECKED (0) unless specified
-        if [[ "${#init_cb_indices[@]}" -gt 0 ]]; then
+        if [[ ${#init_cb_indices[@]} -gt 0 ]]; then
+            local c_idx
             for c_idx in "${init_cb_indices[@]}"; do
                 if [[ "$c_idx" -ge 0 && "$c_idx" -lt "$item_count" ]]; then
                     checked[$c_idx]=1
